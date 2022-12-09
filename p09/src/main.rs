@@ -5,31 +5,20 @@ struct Pos {
   x: i32,
   y: i32,
 }
-struct Rope<const N: usize> {
-  knots: [Pos; N],
-}
 
-impl <const N: usize> Rope<N> {
-  fn advance(&mut self) {
-    for idx in 0..N - 1 {
-      let ddx = self.knots[idx].x - self.knots[idx + 1].x;
-      let ddy = self.knots[idx].y - self.knots[idx + 1].y;
-      if ddx >= 2 || ddx <= -2 || ddy >= 2 || ddy <= -2 {
-        if ddx != 0 {
-          self.knots[idx + 1].x += ddx.signum();
-        }
-        if ddy != 0 {
-          self.knots[idx + 1].y += ddy.signum();
-        }
-      }
+type Rope = Vec<Pos>;
+
+fn advance(rope: &mut Rope) {
+  for idx in 0..rope.len() - 1 {
+    let dx = rope[idx].x - rope[idx + 1].x;
+    let dy = rope[idx].y - rope[idx + 1].y;
+    if dx >= 2 || dx <= -2 || dy >= 2 || dy <= -2 {
+      rope[idx + 1].x += dx.signum();
+      rope[idx + 1].y += dy.signum();
     }
   }
 }
-
-fn solve<const N: usize>(input: &str) -> usize {
-  let mut rope = Rope {
-    knots: [Pos::default(); N]
-  };
+fn solve(input: &str, mut rope: Vec<Pos>) -> usize {
   let mut tails = HashSet::new();
   for line in input.lines() {
     let mut it = line.splitn(2, " ");
@@ -44,10 +33,10 @@ fn solve<const N: usize>(input: &str) -> usize {
     };
 
     for _ in 0..dist.parse::<usize>().unwrap() {
-      rope.knots[0].x += dx;
-      rope.knots[0].y += dy;
-      rope.advance();
-      tails.insert(*rope.knots.last().unwrap());
+      rope[0].x += dx;
+      rope[0].y += dy;
+      advance(&mut rope);
+      tails.insert(*rope.last().unwrap());
     }
   }
   tails.len()
@@ -55,6 +44,6 @@ fn solve<const N: usize>(input: &str) -> usize {
 
 fn main() {
   let input = std::fs::read_to_string("p09/src/input.txt").unwrap();
-  eprintln!("{}", solve::<2>(&input));
-  eprintln!("{}", solve::<10>(&input));
+  eprintln!("{}", solve(&input, vec![Pos::default(); 2]));
+  eprintln!("{}", solve(&input, vec![Pos::default(); 10]));
 }
