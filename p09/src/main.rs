@@ -11,25 +11,15 @@ struct Rope<const N: usize> {
 
 impl <const N: usize> Rope<N> {
   fn advance(&mut self) {
-
     for idx in 0..N - 1 {
       let ddx = self.knots[idx].x - self.knots[idx + 1].x;
       let ddy = self.knots[idx].y - self.knots[idx + 1].y;
-      let ex = ddx.abs();
-      let ey = ddy.abs();
-      if ex >= 2 {
-        if ey == 0 {
-          self.knots[idx + 1].x += ddx / ex;
-        } else {
-          self.knots[idx + 1].x += ddx / ex;
-          self.knots[idx + 1].y += ddy / ey;
+      if ddx >= 2 || ddx <= -2 || ddy >= 2 || ddy <= -2 {
+        if ddx != 0 {
+          self.knots[idx + 1].x += ddx.signum();
         }
-      } else if ey >= 2 {
-        if ex == 0 {
-          self.knots[idx + 1].y += ddy / ey;
-        } else {
-          self.knots[idx + 1].x += ddx / ex;
-          self.knots[idx + 1].y += ddy / ey;
+        if ddy != 0 {
+          self.knots[idx + 1].y += ddy.signum();
         }
       }
     }
