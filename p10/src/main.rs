@@ -1,11 +1,5 @@
 use std::collections::HashMap;
 
-#[derive(Debug)]
-enum Instruction {
-  AddX(i32),
-  Noop,
-}
-
 struct Machine {
   cycle: i32,
   x: i32,
@@ -13,25 +7,20 @@ struct Machine {
 }
 
 impl Machine {
-  fn init(delay: usize) -> Self {
+  fn init() -> Self {
     Machine {
-      cycle: 1,
+      cycle: 0,
       x: 1,
       screen: vec![false; 40 * 6],
     }
   }
 
-  fn advance(&mut self, instr: &Instruction) {
-    let sprite_pos = (self.x - 1) % 40;
-    let ray_pos = (self.cycle - 1) % 40;
-    if sprite_pos == ray_pos ||
-      ((sprite_pos + 1) % 40) == ray_pos ||
-      ((sprite_pos + 2) % 40) == ray_pos {
-      self.screen[((self.cycle - 1) % 240) as usize] = true;
+  fn advance(&mut self, instr: i32) {
+    let ray_pos = self.cycle % 40;
+    if (self.x - ray_pos).abs() <= 1 {
+      self.screen[(self.cycle % 240) as usize] = true;
     }
-    if let Instruction::AddX(value) = instr {
-      self.x += value;
-    }
+    self.x += instr;
     self.cycle += 1;
   }
 
@@ -50,33 +39,20 @@ impl Machine {
 
 }
 
-fn parse_instr(inst: &str) -> Instruction {
-  if inst == "noop" {
-    Instruction::Noop
-  } else if inst.starts_with("addx ") {
-    Instruction::AddX(inst[5..].parse().unwrap())
-  } else {
-    unreachable!()
-  }
-}
-
 fn main() {
   let test = std::fs::read_to_string("p10/src/input.txt").unwrap();
   let mut processed = Vec::new();
-  for instr in test.lines().map(parse_instr) {
-    match instr {
-      Instruction::Noop => processed.push(instr),
-      Instruction::AddX(_) => {
-        processed.push(Instruction::Noop);
-        processed.push(instr)
-      },
+  for instr in test.lines() {
+    processed.push(0);
+    if instr.starts_with("addx ") {
+      processed.push(instr[5..].parse::<i32>().unwrap());
     }
   }
-  let mut machine = Machine::init(2);
+  let mut machine = Machine::init();
   let mut state = HashMap::new();
   for instr in processed {
-    machine.advance(&instr);
-    state.insert(machine.cycle, machine.x);
+    machine.advance(instr);
+    state.insert(machine.cycle + 1, machine.x);
   }
   let cycles = [20, 60, 100, 140, 180, 220];
   let total: i32 = cycles.iter().map(|c| state[&c] * c).sum();
