@@ -1,7 +1,17 @@
+use std::fmt::Debug;
+use std::str::FromStr;
+use pest::iterators::{Pair, Pairs};
+use pest::{Parser, RuleType};
+use pest_derive::Parser;
+
+#[derive(Parser)]
+#[grammar = "monkey.pest"]
+struct MonkeyParser;
+
 #[derive(Debug, Clone)]
 struct Monkey {
   items: Vec<usize>,
-  op: char,
+  op: String,
   lhs: Option<usize>,
   rhs: Option<usize>,
   test_div: usize,
@@ -10,51 +20,57 @@ struct Monkey {
   total: usize,
 }
 
+fn parse_arg(s: &str) -> Option<usize> {
+  if s == "old" {
+    None
+  } else {
+    Some(s.parse::<usize>().unwrap())
+  }
+}
+
+trait PairsExtra {
+  fn next_str(&mut self) -> &str;
+  fn next_parse<T: FromStr>(&mut self) -> T where T::Err: Debug;
+  fn parse_list<T: FromStr>(&mut self) -> Vec<T> where T::Err: Debug;
+}
+
+impl <R: RuleType> PairsExtra for Pairs<'_, R> {
+  fn next_str(&mut self) -> &str {
+    self.next().unwrap().as_str()
+  }
+
+  fn next_parse<T: FromStr>(&mut self) -> T where T::Err: Debug {
+    self.next().unwrap().as_str().parse().unwrap()
+  }
+
+  fn parse_list<T: FromStr>(&mut self) -> Vec<T> where T::Err: Debug {
+    self.next().unwrap().into_inner().map(|item| item.as_str().parse::<T>().unwrap()).collect::<Vec<_>>()
+  }
+}
+
 impl Monkey {
   fn from_str(s: &str) -> Monkey {
-    let mut it = s.lines();
-    assert!(it.next().unwrap().starts_with("Monkey "));
-    let starting = it.next().unwrap();
-    assert!(starting.starts_with("  Starting items: "));
-    let items = starting["  Starting items: ".len()..].split(",").map(|s| s.trim().parse::<usize>().unwrap()).collect::<Vec<_>>();
-    let op = it.next().unwrap();
-    assert!(op.starts_with("  Operation: new ="));
-    let mut ops = op["  Operation: new = ".len()..].split(" ");
-    let lhs = ops.next().unwrap();
-    let lhs = if lhs == "old" { None } else { Some(lhs.parse::<usize>().unwrap()) };
-    let op = ops.next().unwrap().trim().chars().next().unwrap();
-    let rhs = ops.next().unwrap();
-    let rhs = if rhs == "old" { None } else { Some(rhs.parse::<usize>().unwrap()) };
-
-    let div = it.next().unwrap();
-    assert!(div.starts_with("  Test: divisible by "));
-    let div = div["  Test: divisible by ".len()..].parse::<usize>().unwrap();
-
-    let t = it.next().unwrap();
-    assert!(t.starts_with("    If true: throw to monkey "));
-    let t = t["    If true: throw to monkey ".len()..].parse::<usize>().unwrap();
-    let f = it.next().unwrap();
-    assert!(f.starts_with("    If false: throw to monkey "));
-    let f = f["    If false: throw to monkey ".len()..].parse::<usize>().unwrap();
-    Monkey {
-      items,
-      op,
-      lhs,
-      rhs,
-      test_div: div,
-      true_monkey: t,
-      false_monkey: f,
+    let mut pairs: Pairs<_> = MonkeyParser::parse(Rule::monkey, s).unwrap().next().unwrap().into_inner();
+    let m = Monkey {
+      items: pairs.parse_list(),
+      lhs: parse_arg(pairs.next_str()),
+      op: pairs.next_str().to_owned(),
+      rhs: parse_arg(pairs.next_str()),
+      test_div: pairs.next_parse(),
+      true_monkey: pairs.next_parse(),
+      false_monkey: pairs.next_parse(),
       total: 0,
-    }
+    };
+    m
   }
 }
 
 fn op(monkey: &Monkey, item: usize) -> usize {
   let lhs = monkey.lhs.unwrap_or(item);
   let rhs = monkey.rhs.unwrap_or(item);
-  match monkey.op {
-    '*' => lhs * rhs,
-    '+' => lhs + rhs,
+  match monkey.op.as_str() {
+    "*" => lhs * rhs,
+    "+" => lhs + rhs,
     _ => panic!(),
   }
 }

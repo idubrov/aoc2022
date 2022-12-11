@@ -1,0 +1,17 @@
+monkey = { header ~ starting ~ operation ~ test }
+
+header = _{ "Monkey" ~ ASCII_DIGIT+ ~ ":" }
+starting = _{ "Starting items:" ~ items }
+items = { num ~ ( "," ~ num )* }
+operation = _{ "Operation: new =" ~ arg ~ op ~ arg }
+
+op = { "+" | "*" }
+arg = { "old" | num }
+test = _{ "Test: divisible by" ~ num ~
+    "If true: throw to monkey " ~ num ~
+    "If false: throw to monkey" ~ num
+}
+
+num = @{ ASCII_DIGIT+ }
+
+WHITESPACE = _{ " " | NEWLINE }
