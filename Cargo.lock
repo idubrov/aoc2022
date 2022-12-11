@@ -3,47 +3,7 @@
 version = 3
 
 [[package]]
-name = "aoc2022-p01"
-version = "0.1.0"
-
-[[package]]
-name = "aoc2022-p02"
-version = "0.1.0"
-
-[[package]]
-name = "aoc2022-p03"
-version = "0.1.0"
-
-[[package]]
-name = "aoc2022-p04"
-version = "0.1.0"
-
-[[package]]
-name = "aoc2022-p05"
-version = "0.1.0"
-
-[[package]]
-name = "aoc2022-p06"
-version = "0.1.0"
-
-[[package]]
-name = "aoc2022-p07"
-version = "0.1.0"
-
-[[package]]
-name = "aoc2022-p08"
-version = "0.1.0"
-
-[[package]]
-name = "aoc2022-p09"
-version = "0.1.0"
-
-[[package]]
-name = "aoc2022-p10"
-version = "0.1.0"
-
-[[package]]
-name = "aoc2022-p11"
+name = "aoc2022"
 version = "0.1.0"
 dependencies = [
  "pest",

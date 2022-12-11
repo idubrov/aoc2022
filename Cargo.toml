@@ -1,14 +1,8 @@
-[workspace]
-members = [
-    "p01",
-    "p02",
-    "p03",
-    "p04",
-    "p05",
-    "p06",
-    "p07",
-    "p08",
-    "p09",
-    "p10",
-    "p11",
-]
+[package]
+name = "aoc2022"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pest = "2.5.1"
+pest_derive = "2.5.1"
