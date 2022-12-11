@@ -59,12 +59,12 @@ fn op(monkey: &Monkey, item: usize) -> usize {
   }
 }
 
-fn monkey(monkeys: &mut [Monkey], monkey: usize, w: bool, worry_div: usize) {
+fn monkey(monkeys: &mut [Monkey], monkey: usize, worry_drop: bool, worry_div: usize) {
   let items = std::mem::take(&mut monkeys[monkey].items);
   monkeys[monkey].total += items.len();
   for item in items {
     let mut next = op(&monkeys[monkey], item);
-    if w {
+    if worry_drop {
       next = next / 3;
     }
     let nm = if next % monkeys[monkey].test_div == 0 {
@@ -72,15 +72,14 @@ fn monkey(monkeys: &mut [Monkey], monkey: usize, w: bool, worry_div: usize) {
     } else {
       monkeys[monkey].false_monkey
     };
-    //println!("{monkey}: {next} => {nm}");
     next = next % worry_div;
     monkeys[nm].items.push(next);
   }
 }
 
-fn round(monkeys: &mut [Monkey], w: bool, worry_div: usize) {
+fn round(monkeys: &mut [Monkey], worry_drop: bool, worry_div: usize) {
   for idx in 0..monkeys.len() {
-    monkey(monkeys, idx, w, worry_div);
+    monkey(monkeys, idx, worry_drop, worry_div);
   }
 }
 
