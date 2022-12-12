@@ -1,8 +1,8 @@
 use aoc2022::*;
-use std::fmt::Debug;
 use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
+use std::fmt::Debug;
 
 #[derive(Parser)]
 #[grammar = "bin/day11/monkey.pest"]
@@ -30,7 +30,11 @@ fn parse_arg(s: &str) -> Option<usize> {
 
 impl Monkey {
   fn from_str(s: &str) -> Monkey {
-    let mut pairs: Pairs<_> = MonkeyParser::parse(Rule::monkey, s).unwrap().next().unwrap().into_inner();
+    let mut pairs: Pairs<_> = MonkeyParser::parse(Rule::monkey, s)
+      .unwrap()
+      .next()
+      .unwrap()
+      .into_inner();
     let m = Monkey {
       items: pairs.parse_list(),
       lhs: parse_arg(pairs.next_str()),
@@ -81,9 +85,7 @@ fn round(monkeys: &mut [Monkey], worry_drop: bool, worry_div: usize) {
 
 fn solve(path: &str) {
   let input = input_data(11, path);
-  let mut monkeys = input.split("\n\n")
-    .map(|m| Monkey::from_str(m))
-    .collect::<Vec<_>>();
+  let mut monkeys = input.split("\n\n").map(|m| Monkey::from_str(m)).collect::<Vec<_>>();
   let mut monkeys2 = monkeys.clone();
 
   let worry_div = monkeys.iter().map(|m| m.test_div).product::<usize>();
@@ -92,13 +94,21 @@ fn solve(path: &str) {
     round(&mut monkeys, true, worry_div);
   }
   monkeys.sort_by_key(|m| m.total);
-  println!("{} (first): {}", path, monkeys[monkeys.len() - 2].total * monkeys[monkeys.len() - 1].total);
+  println!(
+    "{} (first): {}",
+    path,
+    monkeys[monkeys.len() - 2].total * monkeys[monkeys.len() - 1].total
+  );
 
   for _ in 0..10000 {
     round(&mut monkeys2, false, worry_div);
   }
   monkeys2.sort_by_key(|m| m.total);
-  println!("{} (second): {}", path, monkeys2[monkeys2.len() - 2].total * monkeys2[monkeys2.len() - 1].total);
+  println!(
+    "{} (second): {}",
+    path,
+    monkeys2[monkeys2.len() - 2].total * monkeys2[monkeys2.len() - 1].total
+  );
 }
 
 fn main() {

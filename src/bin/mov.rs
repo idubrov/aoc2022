@@ -1,5 +1,4 @@
 fn main() {
-
   for file in std::fs::read_dir(".").unwrap() {
     let file = file.unwrap();
     let name = file.file_name();
@@ -13,7 +12,11 @@ fn main() {
         let data_name = data_file.file_name();
         let data_name = data_name.to_str().unwrap();
         if data_name.ends_with(".txt") {
-          std::fs::copy(format!("{name}/src/{data_name}"), format!("src/bin/{new_name}/{data_name}")).unwrap();
+          std::fs::copy(
+            format!("{name}/src/{data_name}"),
+            format!("src/bin/{new_name}/{data_name}"),
+          )
+          .unwrap();
         }
       }
     }

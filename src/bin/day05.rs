@@ -33,7 +33,6 @@ fn main() {
   }
   eprintln!();
 
-
   let mut stacks: [Vec<u8>; 9] = [
     b"BPNQHDRT".to_vec(),
     b"WGBJTV".to_vec(),
@@ -62,5 +61,4 @@ fn main() {
     eprint!("{}", *stacks[idx].last().unwrap() as char);
   }
   eprintln!();
-
 }

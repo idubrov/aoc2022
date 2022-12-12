@@ -9,7 +9,8 @@ fn idx(ch: u8) -> usize {
 }
 
 fn main() {
-  let total: usize = input_data(3, "input.txt").split("\n")
+  let total: usize = input_data(3, "input.txt")
+    .split("\n")
     .map(|line| {
       let mut flags = [0; 52];
       let line = line.trim().as_bytes();
@@ -20,16 +21,15 @@ fn main() {
         flags[idx(*item)] |= 2;
       }
       flags.iter().position(|item| *item == 3).unwrap() + 1
-    }).sum();
+    })
+    .sum();
   eprintln!("{}", total);
 
-
   let lines = input_data(3, "input.txt");
-  let lines = lines
-    .split("\n")
-    .collect::<Vec<&str>>();
+  let lines = lines.split("\n").collect::<Vec<&str>>();
 
-  let total2: usize = lines.chunks(3)
+  let total2: usize = lines
+    .chunks(3)
     .map(|chunks| {
       let mut flags = [0; 52];
       for chunk in 0..3 {

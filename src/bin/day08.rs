@@ -24,12 +24,12 @@ fn scan(grid: &[Vec<i32>], mut x: isize, mut y: isize, dx: isize, dy: isize) -> 
     y += dy;
   }
   count
-
 }
 
 fn main() {
   let input = input_data(8, "input.txt");
-  let grid = input.lines()
+  let grid = input
+    .lines()
     .map(|line| line.as_bytes().iter().map(|ch| (ch - b'0') as i32).collect::<Vec<_>>())
     .collect::<Vec<_>>();
   let mut visibility = Vec::new();
@@ -75,7 +75,6 @@ fn main() {
     }
   }
 
-
   let mut total = 0;
   for y in 0..grid.len() {
     for x in 0..grid[y].len() {
@@ -91,10 +90,8 @@ fn main() {
     for x in 0..grid[y].len() {
       let y = y as isize;
       let x = x as isize;
-      let score = scan(&grid, x, y, 0, -1) *
-        scan(&grid, x, y, -1, 0) *
-        scan(&grid, x, y, 1, 0) *
-        scan(&grid, x, y, 0, 1);
+      let score =
+        scan(&grid, x, y, 0, -1) * scan(&grid, x, y, -1, 0) * scan(&grid, x, y, 1, 0) * scan(&grid, x, y, 0, 1);
       if score > best_score {
         best_score = score;
       }

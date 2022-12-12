@@ -29,5 +29,4 @@ fn main() {
     }
   }
   eprintln!("{}", total);
-
 }
