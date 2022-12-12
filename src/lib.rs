@@ -1,12 +1,13 @@
 pub use charmap::*;
-pub use pos::*;
 use pest::iterators::Pairs;
 use pest::RuleType;
+pub use pos::*;
 use std::fmt::Debug;
 use std::str::FromStr;
 
 mod charmap;
 mod pos;
+pub mod visualize;
 
 pub fn input_data(day: usize, file: &str) -> String {
   std::fs::read_to_string(format!("src/bin/day{:02}/{}", day, file)).unwrap()

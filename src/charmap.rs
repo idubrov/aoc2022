@@ -1,7 +1,7 @@
-use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashSet};
-use std::ops::{Index, IndexMut};
 use crate::{Dir2, Pos2};
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
+use std::ops::{Index, IndexMut};
 
 #[derive(Clone)]
 pub struct CharMap {
@@ -15,6 +15,12 @@ pub struct CharMap {
 struct PathState {
   pos: Pos2,
   cost: usize,
+}
+
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+pub enum VisitKind {
+  Consider,
+  Visit,
 }
 
 impl Ord for PathState {
@@ -78,7 +84,8 @@ impl CharMap {
 
   /// Cast a ray in a given direction and find first position matching the condition.
   pub fn cast_find(&self, pos: Pos2, dir: Dir2, match_fn: impl Fn(&Self, Pos2) -> bool) -> Option<Pos2> {
-    pos.cast_ray(dir)
+    pos
+      .cast_ray(dir)
       .skip(1)
       .take_while(|pos| self.is_inside(*pos))
       .find(|pos| match_fn(self, *pos))
@@ -119,30 +126,49 @@ impl CharMap {
     target_fn: impl Fn(&Self, Pos2) -> bool,
     cost_fn: impl Fn(&Self, Pos2, Pos2) -> Option<usize>,
   ) -> Option<usize> {
-    let mut visited = HashSet::new();
+    self.find_path_cb(start, target_fn, cost_fn, |_, _, _, _| {})
+  }
+
+  pub fn find_path_cb(
+    &self,
+    start: Pos2,
+    target_fn: impl Fn(&Self, Pos2) -> bool,
+    cost_fn: impl Fn(&Self, Pos2, Pos2) -> Option<usize>,
+    mut visit_fn: impl FnMut(&CharMap, VisitKind, Pos2, usize),
+  ) -> Option<usize> {
+    let dims = self.dims();
+    let mut costs = vec![vec![usize::MAX; dims.x as usize]; dims.y as usize];
     let mut queue = BinaryHeap::new();
     queue.push(PathState { pos: start, cost: 0 });
+    costs[start.y as usize][start.x as usize] = 0;
     while let Some(PathState { pos, cost }) = queue.pop() {
-      if !visited.insert(pos) {
-        continue;
-      }
-      if target_fn(self, pos) {
-        return Some(cost);
-      }
+      visit_fn(self, VisitKind::Visit, pos, cost);
+
+      // if target_fn(self, pos) {
+      //   return Some(cost);
+      // }
       for dir in Dir2::all_4() {
         let next = pos + dir;
         if !self.is_inside(next) {
           continue;
         }
         if let Some(next_cost) = cost_fn(self, pos, next) {
-          queue.push(PathState {
-            pos: next,
-            cost: cost + next_cost,
-          });
+          if cost + next_cost < costs[next.y as usize][next.x as usize] {
+            costs[next.y as usize][next.x as usize] = cost + next_cost;
+            visit_fn(self, VisitKind::Consider, next, cost);
+            queue.push(PathState {
+              pos: next,
+              cost: cost + next_cost,
+            });
+          }
         }
       }
     }
-    None
+    self
+      .every_pos()
+      .filter(|p| target_fn(self, *p))
+      .map(|t| costs[t.y as usize][t.x as usize])
+      .min()
   }
 }
 
