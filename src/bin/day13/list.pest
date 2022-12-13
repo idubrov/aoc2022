@@ -1,0 +1,5 @@
+node = _{ list | value }
+list = { "[" ~ (node ~ ("," ~ node)*)? ~ "]" }
+value = @{ ASCII_DIGIT+ }
+
+WHITESPACE = _{ " " | NEWLINE }
