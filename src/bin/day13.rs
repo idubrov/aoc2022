@@ -1,14 +1,11 @@
 use std::cmp::Ordering;
-use pest::iterators::Pair;
-use pest_derive::Parser;
 use pest::Parser;
+use serde::Deserialize;
+use serde_json::from_str;
 use aoc2022::*;
 
-#[derive(Parser)]
-#[grammar = "bin/day13/list.pest"]
-struct ListParser;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(untagged)]
 enum Node {
   List(Vec<Node>),
   Value(usize),
@@ -31,25 +28,13 @@ impl PartialOrd for Node {
   }
 }
 
-fn parse_pair(pair: Pair<Rule>) -> Node {
-  match pair.as_rule() {
-    Rule::list => Node::List(pair.into_inner().map(parse_pair).collect::<Vec<_>>()),
-    Rule::value => Node::Value(pair.as_str().parse().unwrap()),
-    _ => unreachable!()
-  }
-}
-
-fn parse_list(text: &str) -> Node {
-  parse_pair(ListParser::parse(Rule::node, text).unwrap().next().unwrap())
-}
-
 fn solve(path: &str) {
   let data = input_data(13, path);
   let data = data.split("\n\n").collect::<Vec<_>>();
   let pairs = data
     .iter()
     .map(|item| item.split_once("\n").unwrap())
-    .map(|(f, s)| (parse_list(f), parse_list(s)))
+    .map(|(f, s)| (from_str::<Node>(f).unwrap(), from_str::<Node>(s).unwrap()))
     .collect::<Vec<_>>();
 
   let total = pairs.iter()
@@ -58,8 +43,8 @@ fn solve(path: &str) {
     .sum::<usize>();
 
   let mut list = pairs.into_iter().flat_map(|(f, s)| [f, s].into_iter()).collect::<Vec<_>>();
-  let div1 = parse_list("[[2]]");
-  let div2 = parse_list("[[6]]");
+  let div1 = from_str::<Node>("[[2]]").unwrap();
+  let div2 = from_str::<Node>("[[6]]").unwrap();
   list.push(div1.clone());
   list.push(div2.clone());
   list.sort();
