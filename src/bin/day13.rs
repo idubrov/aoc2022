@@ -46,23 +46,20 @@ fn parse_list(text: &str) -> Node {
 fn solve(path: &str) {
   let data = input_data(13, path);
   let data = data.split("\n\n").collect::<Vec<_>>();
+  let pairs = data
+    .iter()
+    .map(|item| item.split_once("\n").unwrap())
+    .map(|(f, s)| (parse_list(f), parse_list(s)))
+    .collect::<Vec<_>>();
 
-  let mut total = 0;
-  let mut list = Vec::new();
-  for (idx, entry) in data.iter().enumerate() {
-    let (first, second) = entry.split_once("\n").unwrap();
-    let first = parse_list(first);
-    let second = parse_list(second);
-    if first < second {
-      total += idx + 1;
-    }
-    list.push(first);
-    list.push(second);
-  }
+  let total = pairs.iter()
+    .enumerate()
+    .filter(|(_, (a, b))| a < b).map(|(idx, _)| idx + 1)
+    .sum::<usize>();
 
+  let mut list = pairs.into_iter().flat_map(|(f, s)| [f, s].into_iter()).collect::<Vec<_>>();
   let div1 = parse_list("[[2]]");
   let div2 = parse_list("[[6]]");
-
   list.push(div1.clone());
   list.push(div2.clone());
   list.sort();
