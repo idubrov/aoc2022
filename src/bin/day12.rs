@@ -17,7 +17,7 @@ fn visualize_fn(visualize: &Channel) -> impl Fn(&CharMap, VisitKind, Pos2, usize
       VisitKind::Consider => (0xff, 0, 0),
       VisitKind::Visit => (0, (255 * u32::from(item - b'a') / 26) as u8, 0),
     };
-    visualize.draw_pixel(pos, color);
+    visualize.draw_map_pixel(pos, color);
     visualize.sleep(Duration::from_micros(100));
   }
 }

@@ -1,4 +1,3 @@
-use std::time::Duration;
 use aoc2022::*;
 use aoc2022::visualize::{Channel, Color, visualize};
 
@@ -14,18 +13,17 @@ const WALL_COLOR: Color = (0xff, 0xff, 0xff);
 const SAND_COLOR: Color = (0xc2, 0xb2, 0x80);
 
 fn drop_sand(map: &mut CharMap, mut pos: Pos2, floor: isize, channel: &Channel) -> bool {
-  let view_off = Pos2::new(500 - floor, 0);
   while pos.y < floor - 1 {
-    channel.draw_pixel(pos - view_off, SAND_COLOR);
-    channel.sleep(Duration::from_micros(10));
+    channel.draw_map_pixel(pos, SAND_COLOR);
     if let Some(d) = DIRS.iter().find(|d| map[pos + *d] == b'.') {
-      channel.draw_pixel(pos - view_off, EMPTY_COLOR);
+      channel.draw_map_pixel(pos, EMPTY_COLOR);
       pos += *d;
     } else {
       map[pos] = b'o';
       return true;
     }
   }
+  channel.draw_map_pixel(pos, SAND_COLOR);
   map[pos] = b'o';
   false
 }

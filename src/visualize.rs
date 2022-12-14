@@ -34,15 +34,15 @@ impl Channel {
       .as_ref()
       .unwrap()
       .send_event(UserEvent::ResizeAndDraw {
-        width: dims.x,
-        height: dims.y,
+        top_left,
+        bottom_right,
         framebuf,
       })
       .map_err(|_| ())
       .expect("message failed");
   }
 
-  pub fn draw_pixel(&self, pos: Pos2, color: Color) {
+  pub fn draw_map_pixel(&self, pos: Pos2, color: Color) {
     if let Some(ref proxy) = self.proxy {
       proxy
         .send_event(UserEvent::Pixel { pos, color })
@@ -60,8 +60,8 @@ impl Channel {
 
 enum UserEvent {
   ResizeAndDraw {
-    width: isize,
-    height: isize,
+    top_left: Pos2,
+    bottom_right: Pos2,
     framebuf: Vec<u8>,
   },
   Pixel {
@@ -94,12 +94,14 @@ pub fn visualize(title: &str, worker_fn: impl FnOnce(Channel) + Send + 'static) 
   };
   std::thread::spawn(|| worker_fn(channel));
 
+  let mut view_top_left = Pos2::new(0, 0);
+  let mut view_bottom_right = Pos2::new(0, 0);
   event_loop.run(move |event, _, control_flow| {
-    if let Event::RedrawRequested(_) = event {
+    if let Event::MainEventsCleared = event {
       if pixels.render().is_err() {
-        *control_flow = ControlFlow::Exit;
-        eprintln!("Render has failed.");
-        return;
+      *control_flow = ControlFlow::Exit;
+      eprintln!("Render has failed.");
+      return;
       }
     }
 
@@ -120,19 +122,23 @@ pub fn visualize(title: &str, worker_fn: impl FnOnce(Channel) + Send + 'static) 
     if let Event::UserEvent(user) = event {
       match user {
         UserEvent::ResizeAndDraw {
-          width,
-          height,
+          top_left,
+          bottom_right,
           framebuf,
         } => {
-          pixels.resize_buffer(width as u32, height as u32);
+          let dims = bottom_right - top_left + Dir2::new(1, 1);
+          pixels.resize_buffer(dims.x as u32, dims.y as u32);
           pixels.get_frame_mut().copy_from_slice(&framebuf);
-          window.request_redraw();
+          view_top_left = top_left;
+          view_bottom_right = bottom_right;
         }
         UserEvent::Pixel { pos, color: (r, g, b) } => {
-          let w = pixels.clamp_pixel_pos((isize::MAX, isize::MAX)).0 as isize + 1;
-          let idx = ((pos.y * w + pos.x) as usize) * 4;
-          pixels.get_frame_mut()[idx..idx + 4].copy_from_slice(&[r, g, b, 0xff]);
-          window.request_redraw();
+          if view_top_left.inside_rect(view_top_left, view_bottom_right) {
+            let coord = pos - view_top_left;
+            let w = view_bottom_right.x - view_top_left.x + 1;
+            let idx = ((coord.y * w + coord.x) as usize) * 4;
+            pixels.get_frame_mut()[idx..idx + 4].copy_from_slice(&[r, g, b, 0xff]);
+          }
         }
       }
     }
