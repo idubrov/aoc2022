@@ -5,12 +5,12 @@ fn to_pos(pos: &str) -> Pos2 {
   Pos2::new(x.trim().parse().unwrap(), y.trim().parse().unwrap())
 }
 
-const DIRS: [Dir; 3] = [Dir2::new(0, 1), Dir2::new(-1, 1), Dir2::new(1, 1)];
+const DIRS: [Dir2; 3] = [Dir2::new(0, 1), Dir2::new(-1, 1), Dir2::new(1, 1)];
 
 fn drop_sand(map: &mut CharMap, mut pos: Pos2) -> bool {
   while pos.y < map.dims().y - 1 {
     assert!(pos.x >= 0 && pos.x < map.dims().x);
-    if let Some(d) = dirs.iter().find(|d| map[pos + *d] == b'.') {
+    if let Some(d) = DIRS.iter().find(|d| map[pos + *d] == b'.') {
       pos += *d;
     } else {
       map[pos] = b'o';
@@ -22,7 +22,7 @@ fn drop_sand(map: &mut CharMap, mut pos: Pos2) -> bool {
   false
 }
 
-fn solve(path: &str) {
+fn solve(path: &str) -> (usize, usize) {
   let input = input_data(14, path);
   let lines = input
     .lines()
@@ -46,7 +46,7 @@ fn solve(path: &str) {
   while drop_sand(&mut map, Pos2::new(500, 0)) {
     total += 1;
   }
-  println!("{} (first): {}", path, total);
+  let first = total;
 
   // Count the last dropped
   total += 1;
@@ -54,10 +54,19 @@ fn solve(path: &str) {
     drop_sand(&mut map, Pos2::new(500, 0));
     total += 1;
   }
-  println!("{} (second): {}", path, total);
+  (first, total)
+}
+
+#[test]
+fn test() {
+  assert_eq!((24, 93), solve("test.txt"));
+  assert_eq!((618, 26358), solve("input.txt"));
 }
 
 fn main() {
-  solve("test.txt");
-  solve("input.txt");
+  let test = solve("test.txt");
+  println!("test.txt: {} and {}", test.0, test.1);
+
+  let input = solve("input.txt");
+  println!("test.txt: {} and {}", input.0, input.1);
 }

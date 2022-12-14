@@ -13,7 +13,7 @@ pub struct Dir2 {
 }
 
 impl Pos2 {
-  pub fn new(x: isize, y: isize) -> Pos2 {
+  pub const fn new(x: isize, y: isize) -> Pos2 {
     Pos2 { x, y }
   }
 
@@ -63,7 +63,7 @@ impl Pos2 {
 }
 
 impl Dir2 {
-  pub fn new(dx: isize, dy: isize) -> Dir2 {
+  pub const fn new(dx: isize, dy: isize) -> Dir2 {
     Dir2 { dx, dy }
   }
 

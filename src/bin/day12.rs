@@ -22,7 +22,7 @@ fn visualize_fn(visualize: &Channel) -> impl Fn(&CharMap, VisitKind, Pos2, usize
   }
 }
 
-fn solve(path: &str, visualize: &Channel) {
+fn solve(path: &str, visualize: &Channel) -> (usize, usize) {
   let input = input_data(12, path);
   let mut map = CharMap::from_text(&input);
 
@@ -40,14 +40,19 @@ fn solve(path: &str, visualize: &Channel) {
     .find_path(end, |_, pos| map[pos] == b'a', |map, from, to| cost_fn(map, to, from))
     .unwrap();
 
-  println!("{} (first): {}", path, from_start);
-  println!("{} (second): {}", path, from_any_start);
+  (from_start, from_any_start)
+}
+
+#[test]
+fn test() {
+  assert_eq!((31, 29), solve("test.txt", &Channel::empty()));
+  assert_eq!((490, 488), solve("input.txt", &Channel::empty()));
 }
 
 fn main() {
-  solve("test.txt", &Channel::empty());
-  solve("input.txt", &Channel::empty());
-  // visualize("day 12", |channel| {
-  //   solve("input.txt", &channel);
-  // })
+  let test = solve("test.txt", &Channel::empty());
+  println!("test.txt: {} and {}", test.0, test.1);
+
+  let input = solve("input.txt", &Channel::empty());
+  println!("input.txt: {} and {}", input.0, input.1);
 }
