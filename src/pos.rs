@@ -21,16 +21,18 @@ impl Pos2 {
     Pos2 { x: 0, y: 0 }
   }
 
-  /// Check if position is inside the rect. Low bound is inclusive and high bound is exclusive
+  /// Check if position is inside the rect. Both bounds are inclusive
   pub fn inside_rect(&self, low: Pos2, high: Pos2) -> bool {
-    self.x >= low.x && self.x < high.x && self.y >= low.y && self.y < high.y
+    self.x >= low.x && self.x <= high.x && self.y >= low.y && self.y <= high.y
   }
 
+  /// Iterate all positions (left to right, then top to bottom) for the rect. Both bounds
+  /// are inclusive
   pub fn iter_rect(low: Pos2, high: Pos2) -> impl Iterator<Item = Pos2> {
     Pos2RectIterator {
       current: low,
-      low,
-      high,
+      top_left: low,
+      bottom_right: high,
     }
   }
 
@@ -123,21 +125,21 @@ impl<'a> Add<&'a Dir2> for Pos2 {
 
 pub struct Pos2RectIterator {
   current: Pos2,
-  low: Pos2,
-  high: Pos2,
+  top_left: Pos2,
+  bottom_right: Pos2,
 }
 
 impl Iterator for Pos2RectIterator {
   type Item = Pos2;
 
   fn next(&mut self) -> Option<Self::Item> {
-    if !self.current.inside_rect(self.low, self.high) {
+    if !self.current.inside_rect(self.top_left, self.bottom_right) {
       return None;
     }
     let item = self.current;
     self.current.x += 1;
-    if self.current.x >= self.high.x {
-      self.current.x = self.low.x;
+    if self.current.x >= self.bottom_right.x {
+      self.current.x = self.top_left.x;
       self.current.y += 1;
     }
     Some(item)

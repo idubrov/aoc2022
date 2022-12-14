@@ -1,14 +1,42 @@
-use crate::{Dir2, Pos2};
 use std::cmp::Ordering;
-use std::collections::BinaryHeap;
+use std::collections::{BinaryHeap, HashMap};
 use std::ops::{Index, IndexMut};
+
+use crate::{Dir2, Pos2};
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum BoundsBehavior {
+  /// Panic when accessing out of bounds
+  Panic,
+  /// Writes resize map as necessary, reads return a default value.
+  Grow {
+    default: u8,
+  },
+  /// Ignore writes, reads return a default value.
+  Abyss {
+    default: u8,
+    nothing: u8,
+  },
+}
+
+impl BoundsBehavior {
+  pub fn grow(ch: u8) -> BoundsBehavior {
+    BoundsBehavior::Grow {
+      default: ch,
+    }
+  }
+}
 
 #[derive(Clone)]
 pub struct CharMap {
   map: Vec<Vec<u8>>,
   tmp: Vec<Vec<u8>>,
-  border: u8,
-  nothing: u8,
+  bounds: BoundsBehavior,
+  /// Top left corner of the map (inclusize)
+  top_left: Pos2,
+  /// Bottom right corner of the map (inclusive)
+  bottom_right: Pos2,
+  // offset: Pos2,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -39,21 +67,68 @@ impl Index<Pos2> for CharMap {
   type Output = u8;
 
   fn index(&self, pos: Pos2) -> &Self::Output {
-    if pos.inside_rect(Pos2::zero(), self.dims()) {
-      &self.map[pos.y as usize][pos.x as usize]
+    if self.is_in_bounds(pos) {
+      &self.map[(pos.y - self.top_left.y) as usize][(pos.x - self.top_left.x) as usize]
     } else {
-      &self.border
+      match self.bounds {
+        BoundsBehavior::Panic => panic!("{} is out of bounds", pos),
+        BoundsBehavior::Abyss { ref default, .. } => default,
+        BoundsBehavior::Grow { ref default } => default,
+      }
     }
   }
 }
 
 impl IndexMut<Pos2> for CharMap {
   fn index_mut(&mut self, pos: Pos2) -> &mut Self::Output {
-    if pos.inside_rect(Pos2::zero(), self.dims()) {
-      &mut self.map[pos.y as usize][pos.x as usize]
-    } else {
-      &mut self.nothing
+    if !self.is_in_bounds(pos) {
+      match self.bounds {
+        BoundsBehavior::Panic => panic!("{} is out of bounds", pos),
+        BoundsBehavior::Abyss { ref mut nothing, .. } => return nothing,
+        BoundsBehavior::Grow { default } => {
+
+          if self.bottom_right == Pos2::new(-1, -1) {
+            self.top_left = pos;
+            self.bottom_right = pos;
+            self.map = vec![vec![default; 1]; 1];
+            return &mut self.map[0][0];
+          }
+          if pos.x < self.top_left.x {
+            let delta = self.top_left.x - pos.x;
+            for line in &mut self.map {
+              for _ in 0..delta {
+                line.insert(0, default);
+              }
+            }
+            self.top_left.x -= delta;
+          }
+          if pos.y < self.top_left.y {
+            let delta = self.top_left.y - pos.y;
+            for _ in 0..delta {
+              self.map.insert(0, vec![default; self.dims().x as usize]);
+            }
+            self.top_left.y -= delta;
+          }
+          if pos.x > self.bottom_right.x {
+            let delta = pos.x - self.bottom_right.x;
+            for line in &mut self.map {
+              for _ in 0..delta {
+                line.push(default);
+              }
+            }
+            self.bottom_right.x += delta;
+          }
+          if pos.y > self.bottom_right.y {
+            let delta = pos.y - self.bottom_right.y;
+            for _ in 0..delta {
+              self.map.push(vec![default; self.dims().x as usize]);
+            }
+            self.bottom_right.y += delta;
+          }
+        },
+      }
     }
+    &mut self.map[(pos.y - self.top_left.y) as usize][(pos.x - self.top_left.x) as usize]
   }
 }
 
@@ -61,26 +136,28 @@ impl CharMap {
   pub fn from_text(text: &str) -> Self {
     let map = text.lines().map(|line| line.as_bytes().to_vec()).collect::<Vec<_>>();
     CharMap {
+      bounds: BoundsBehavior::Panic,
+      top_left: Pos2::zero(),
+      bottom_right: Pos2::new((map[0].len() as isize) - 1, (map.len() as isize) - 1),
       tmp: map.clone(),
       map,
-      border: 0,
-      nothing: 0,
     }
   }
 
-  pub fn from_dims(dims: Pos2, ch: u8) -> Self {
-    let map = vec![vec![ch; dims.x as usize]; dims.y as usize];
+  pub fn empty(bounds: BoundsBehavior) -> Self {
+    let map = vec![];
     CharMap {
       tmp: map.clone(),
       map,
-      border: ch,
-      nothing: 0,
+      bounds,
+      top_left: Pos2::zero(),
+      bottom_right: Pos2::new(-1, -1),
     }
   }
 
   /// Set the "default" value for elements outside of the map bounds.
-  pub fn with_border(mut self, border: u8) -> Self {
-    self.border = border;
+  pub fn with_bounds(mut self, bounds: BoundsBehavior) -> Self {
+    self.bounds = bounds;
     self
   }
 
@@ -88,8 +165,8 @@ impl CharMap {
     Dir2::all_4().filter(|dir| self[pos + dir] == ch).count()
   }
 
-  pub fn is_inside(&self, pos: Pos2) -> bool {
-    pos.inside_rect(Pos2::zero(), self.dims())
+  pub fn is_in_bounds(&self, pos: Pos2) -> bool {
+    pos.inside_rect(self.top_left, self.bottom_right)
   }
 
   /// Cast a ray in a given direction and find first position matching the condition.
@@ -97,7 +174,7 @@ impl CharMap {
     pos
       .cast_ray(dir)
       .skip(1)
-      .take_while(|pos| self.is_inside(*pos))
+      .take_while(|pos| self.is_in_bounds(*pos))
       .find(|pos| match_fn(self, *pos))
   }
 
@@ -122,12 +199,20 @@ impl CharMap {
       .sum::<usize>()
   }
 
+  pub fn top_left(&self) -> Pos2 {
+    self.top_left
+  }
+
+  pub fn bottom_right(&self) -> Pos2 {
+    self.bottom_right
+  }
+
   pub fn dims(&self) -> Pos2 {
-    Pos2::new(self.map[0].len() as isize, self.map.len() as isize)
+    self.bottom_right - self.top_left + Dir2::new(1, 1)
   }
 
   pub fn every_pos(&self) -> impl Iterator<Item = Pos2> {
-    Pos2::iter_rect(Pos2::zero(), self.dims())
+    Pos2::iter_rect(self.top_left, self.bottom_right)
   }
 
   pub fn find_path(
@@ -146,25 +231,21 @@ impl CharMap {
     cost_fn: impl Fn(&Self, Pos2, Pos2) -> Option<usize>,
     mut visit_fn: impl FnMut(&CharMap, VisitKind, Pos2, usize),
   ) -> Option<usize> {
-    let dims = self.dims();
-    let mut costs = vec![vec![usize::MAX; dims.x as usize]; dims.y as usize];
+    let mut costs = HashMap::new();
     let mut queue = BinaryHeap::new();
     queue.push(PathState { pos: start, cost: 0 });
-    costs[start.y as usize][start.x as usize] = 0;
+    costs.insert(start, 0);
     while let Some(PathState { pos, cost }) = queue.pop() {
       visit_fn(self, VisitKind::Visit, pos, cost);
 
-      // if target_fn(self, pos) {
-      //   return Some(cost);
-      // }
       for dir in Dir2::all_4() {
         let next = pos + dir;
-        if !self.is_inside(next) {
+        if !self.is_in_bounds(next) {
           continue;
         }
         if let Some(next_cost) = cost_fn(self, pos, next) {
-          if cost + next_cost < costs[next.y as usize][next.x as usize] {
-            costs[next.y as usize][next.x as usize] = cost + next_cost;
+          if cost + next_cost < costs.get(&next).copied().unwrap_or(usize::MAX) {
+            costs.insert(next, cost + next_cost);
             visit_fn(self, VisitKind::Consider, next, cost);
             queue.push(PathState {
               pos: next,
@@ -177,16 +258,16 @@ impl CharMap {
     self
       .every_pos()
       .filter(|p| target_fn(self, *p))
-      .map(|t| costs[t.y as usize][t.x as usize])
+      .map(|t| costs.get(&t).copied().unwrap_or(usize::MAX))
       .min()
   }
 }
 
 impl std::fmt::Display for CharMap {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    for line in &self.map {
-      for item in line {
-        write!(f, "{}", *item as char)?;
+    for y in self.top_left.y..=self.bottom_right.y {
+      for x in self.top_left.x..=self.bottom_right.x {
+        write!(f, "{}", self[Pos2::new(x, y)] as char)?;
       }
       writeln!(f)?;
     }

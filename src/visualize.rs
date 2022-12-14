@@ -1,4 +1,4 @@
-use crate::{CharMap, Pos2};
+use crate::{CharMap, Dir2, Pos2};
 use pixels::{Pixels, SurfaceTexture};
 use std::time::Duration;
 use winit::dpi::LogicalSize;
@@ -11,22 +11,22 @@ pub struct Channel {
   proxy: Option<EventLoopProxy<UserEvent>>,
 }
 
-type Color = (u8, u8, u8);
+pub type Color = (u8, u8, u8);
 
 impl Channel {
   pub fn empty() -> Channel {
     Channel { proxy: None }
   }
 
-  pub fn draw_map(&self, map: &CharMap, color_fn: impl Fn(u8) -> Color) {
+  pub fn draw_map(&self, map: &CharMap, top_left: Pos2, bottom_right: Pos2, color_fn: impl Fn(u8) -> Color) {
     if self.proxy.is_none() {
       return;
     }
-    let dims = map.dims();
+    let dims = bottom_right - top_left + Dir2::new(1, 1);
     let mut framebuf: Vec<u8> = vec![0u8; (dims.x * dims.y * 4) as usize];
-    for pos in map.every_pos() {
+    for pos in Pos2::iter_rect(top_left, bottom_right) {
       let (r, g, b) = color_fn(map[pos]);
-      let idx = ((pos.y * dims.x + pos.x) as usize) * 4;
+      let idx = (((pos.y - top_left.y) * dims.x + (pos.x - top_left.x)) as usize) * 4;
       framebuf[idx..idx + 4].copy_from_slice(&[r, g, b, 0xff]);
     }
     self

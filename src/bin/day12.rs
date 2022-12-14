@@ -18,7 +18,7 @@ fn visualize_fn(visualize: &Channel) -> impl Fn(&CharMap, VisitKind, Pos2, usize
       VisitKind::Visit => (0, (255 * u32::from(item - b'a') / 26) as u8, 0),
     };
     visualize.draw_pixel(pos, color);
-    visualize.sleep(Duration::from_nanos(1000));
+    visualize.sleep(Duration::from_micros(100));
   }
 }
 
@@ -32,7 +32,7 @@ fn solve(path: &str, visualize: &Channel) -> (usize, usize) {
   map[start] = b'a';
   map[end] = b'z';
 
-  visualize.draw_map(&map, |item| (0, (255 * u32::from(item - b'a') / 26) as u8, 0));
+  visualize.draw_map(&map, map.top_left(), map.bottom_right(), |item| (0, (255 * u32::from(item - b'a') / 26) as u8, 0));
   let from_start = map
     .find_path_cb(start, |_, pos| pos == end, cost_fn, visualize_fn(visualize))
     .unwrap();
@@ -53,6 +53,8 @@ fn main() {
   let test = solve("test.txt", &Channel::empty());
   println!("test.txt: {} and {}", test.0, test.1);
 
-  let input = solve("input.txt", &Channel::empty());
-  println!("input.txt: {} and {}", input.0, input.1);
+  visualize("input.txt", |channel| {
+    let input = solve("input.txt", &channel);
+    println!("input.txt: {} and {}", input.0, input.1);
+  });
 }
