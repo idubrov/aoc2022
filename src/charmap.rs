@@ -68,6 +68,16 @@ impl CharMap {
     }
   }
 
+  pub fn from_dims(dims: Pos2, ch: u8) -> Self {
+    let map = vec![vec![ch; dims.x as usize]; dims.y as usize];
+    CharMap {
+      tmp: map.clone(),
+      map,
+      border: ch,
+      nothing: 0,
+    }
+  }
+
   /// Set the "default" value for elements outside of the map bounds.
   pub fn with_border(mut self, border: u8) -> Self {
     self.border = border;

@@ -1,8 +1,8 @@
-use std::cmp::Ordering;
+use aoc2022::*;
 use pest::Parser;
 use serde::Deserialize;
 use serde_json::from_str;
-use aoc2022::*;
+use std::cmp::Ordering;
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(untagged)]
@@ -37,12 +37,17 @@ fn solve(path: &str) {
     .map(|(f, s)| (from_str::<Node>(f).unwrap(), from_str::<Node>(s).unwrap()))
     .collect::<Vec<_>>();
 
-  let total = pairs.iter()
+  let total = pairs
+    .iter()
     .enumerate()
-    .filter(|(_, (a, b))| a < b).map(|(idx, _)| idx + 1)
+    .filter(|(_, (a, b))| a < b)
+    .map(|(idx, _)| idx + 1)
     .sum::<usize>();
 
-  let mut list = pairs.into_iter().flat_map(|(f, s)| [f, s].into_iter()).collect::<Vec<_>>();
+  let mut list = pairs
+    .into_iter()
+    .flat_map(|(f, s)| [f, s].into_iter())
+    .collect::<Vec<_>>();
   let div1 = from_str::<Node>("[[2]]").unwrap();
   let div2 = from_str::<Node>("[[6]]").unwrap();
   list.push(div1.clone());
