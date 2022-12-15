@@ -55,6 +55,12 @@ impl Area {
   pub fn corners(&self) -> impl Iterator<Item = Pos2> {
     let Pos2 { x: x0, y: y0 } = self.top_left;
     let Pos2 { x: x1, y: y1 } = self.bottom_right;
-    [Pos2::new(x0, y0), Pos2::new(x1, y0), Pos2::new(x0, y1), Pos2::new(x1, y1)].into_iter()
+    [
+      Pos2::new(x0, y0),
+      Pos2::new(x1, y0),
+      Pos2::new(x0, y1),
+      Pos2::new(x1, y1),
+    ]
+    .into_iter()
   }
 }

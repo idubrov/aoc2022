@@ -1,7 +1,7 @@
-use std::collections::HashSet;
 use aoc2022::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use std::collections::HashSet;
 use std::str::FromStr;
 
 static RE: Lazy<Regex> =
@@ -103,6 +103,7 @@ fn solve(path: &str, row: isize, range: isize) -> (isize, isize) {
   let first = count_misses(&ranges);
 
   let mut areas = HashSet::new();
+  // UV square that includes our target XY square
   areas.insert(Area::new(Pos2::new(0, -range), Pos2::new(2 * range, range)));
   for info in &infos {
     areas = areas
@@ -113,6 +114,8 @@ fn solve(path: &str, row: isize, range: isize) -> (isize, isize) {
   }
   let mut second = None;
   'outer: for area in areas {
+    // The solution must be one of the corners in the UV. A better approach would be to intersect
+    // all our UV areas with the target XY area, but haven't figured out simple solution yet.
     for corner in area.corners() {
       if (corner.x + corner.y) % 2 == 0 {
         let candidate = corner.from_uv();

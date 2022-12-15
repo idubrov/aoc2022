@@ -72,6 +72,7 @@ impl Pos2 {
   }
 
   pub fn from_uv(self) -> Pos2 {
+    assert_eq!((self.x + self.y) % 2, 0, "not convertible from UV");
     Pos2::new((self.x + self.y) / 2, (self.x - self.y) / 2)
   }
 }
