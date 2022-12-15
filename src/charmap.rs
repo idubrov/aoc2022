@@ -9,21 +9,14 @@ pub enum BoundsBehavior {
   /// Panic when accessing out of bounds
   Panic,
   /// Writes resize map as necessary, reads return a default value.
-  Grow {
-    default: u8,
-  },
+  Grow { default: u8 },
   /// Ignore writes, reads return a default value.
-  Abyss {
-    default: u8,
-    nothing: u8,
-  },
+  Abyss { default: u8, nothing: u8 },
 }
 
 impl BoundsBehavior {
   pub fn grow(ch: u8) -> BoundsBehavior {
-    BoundsBehavior::Grow {
-      default: ch,
-    }
+    BoundsBehavior::Grow { default: ch }
   }
 }
 
@@ -86,7 +79,6 @@ impl IndexMut<Pos2> for CharMap {
         BoundsBehavior::Panic => panic!("{} is out of bounds", pos),
         BoundsBehavior::Abyss { ref mut nothing, .. } => return nothing,
         BoundsBehavior::Grow { default } => {
-
           if self.bottom_right == Pos2::new(-1, -1) {
             self.top_left = pos;
             self.bottom_right = pos;
@@ -125,7 +117,7 @@ impl IndexMut<Pos2> for CharMap {
             }
             self.bottom_right.y += delta;
           }
-        },
+        }
       }
     }
     &mut self.map[(pos.y - self.top_left.y) as usize][(pos.x - self.top_left.x) as usize]

@@ -32,7 +32,9 @@ fn solve(path: &str, visualize: &Channel) -> (usize, usize) {
   map[start] = b'a';
   map[end] = b'z';
 
-  visualize.draw_map(&map, map.top_left(), map.bottom_right(), |item| (0, (255 * u32::from(item - b'a') / 26) as u8, 0));
+  visualize.draw_map(&map, map.top_left(), map.bottom_right(), |item| {
+    (0, (255 * u32::from(item - b'a') / 26) as u8, 0)
+  });
   let from_start = map
     .find_path_cb(start, |_, pos| pos == end, cost_fn, visualize_fn(visualize))
     .unwrap();

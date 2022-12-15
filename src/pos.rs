@@ -146,7 +146,6 @@ impl Iterator for Pos2RectIterator {
   }
 }
 
-
 impl std::fmt::Display for Pos2 {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     write!(f, "({}, {})", self.x, self.y)

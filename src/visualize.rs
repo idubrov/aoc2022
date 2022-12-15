@@ -1,6 +1,6 @@
-use std::sync::mpsc::{channel, Sender};
 use crate::{CharMap, Dir2, Pos2};
 use pixels::{Pixels, SurfaceTexture};
+use std::sync::mpsc::{channel, Sender};
 use std::time::Duration;
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
@@ -16,7 +16,7 @@ pub type Color = (u8, u8, u8);
 
 impl Channel {
   pub fn empty() -> Channel {
-    Channel { channel: None, }
+    Channel { channel: None }
   }
 
   pub fn draw_map(&self, map: &CharMap, top_left: Pos2, bottom_right: Pos2, color_fn: impl Fn(u8) -> Color) {
@@ -91,9 +91,7 @@ pub fn visualize(title: &str, worker_fn: impl FnOnce(Channel) + Send + 'static) 
   };
 
   let (sender, receiver) = channel();
-  let channel = Channel {
-    channel: Some(sender),
-  };
+  let channel = Channel { channel: Some(sender) };
   std::thread::spawn(|| worker_fn(channel));
 
   let mut view_state = ViewState {
@@ -106,9 +104,9 @@ pub fn visualize(title: &str, worker_fn: impl FnOnce(Channel) + Send + 'static) 
         view_state.process_user_event(&mut pixels, user);
       }
       if pixels.render().is_err() {
-      *control_flow = ControlFlow::Exit;
-      eprintln!("Render has failed.");
-      return;
+        *control_flow = ControlFlow::Exit;
+        eprintln!("Render has failed.");
+        return;
       }
     }
 

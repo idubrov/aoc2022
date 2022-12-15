@@ -1,5 +1,5 @@
+use aoc2022::visualize::{visualize, Channel, Color};
 use aoc2022::*;
-use aoc2022::visualize::{Channel, Color, visualize};
 
 fn to_pos(pos: &str) -> Pos2 {
   let (x, y) = pos.split_once(",").unwrap();
@@ -48,13 +48,19 @@ fn solve(path: &str, channel: &Channel) -> (usize, usize) {
   let floor_y = positions.clone().map(|p| p.y).max().unwrap() + 2;
   let mut map = CharMap::empty(BoundsBehavior::grow(b'.'));
 
-  lines.iter()
+  lines
+    .iter()
     .flat_map(|line| line.as_slice().windows(2))
     .flat_map(|line| line[0].line_to(line[1]))
     .for_each(|p| map[p] = b'#');
   map[Pos2::new(500, 0)] = b'.';
 
-  channel.draw_map(&map, Pos2::new(500 - floor_y, 0), Pos2::new(500 + floor_y, floor_y), color_fn);
+  channel.draw_map(
+    &map,
+    Pos2::new(500 - floor_y, 0),
+    Pos2::new(500 + floor_y, floor_y),
+    color_fn,
+  );
 
   let mut total = 0;
   while drop_sand(&mut map, Pos2::new(500, 0), floor_y, channel) {
