@@ -1,25 +1,26 @@
+use std::sync::mpsc::{channel, Sender};
 use crate::{CharMap, Dir2, Pos2};
 use pixels::{Pixels, SurfaceTexture};
 use std::time::Duration;
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
-use winit::event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy};
+use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
 pub struct Channel {
-  proxy: Option<EventLoopProxy<UserEvent>>,
+  channel: Option<Sender<UserEvent>>,
 }
 
 pub type Color = (u8, u8, u8);
 
 impl Channel {
   pub fn empty() -> Channel {
-    Channel { proxy: None }
+    Channel { channel: None, }
   }
 
   pub fn draw_map(&self, map: &CharMap, top_left: Pos2, bottom_right: Pos2, color_fn: impl Fn(u8) -> Color) {
-    if self.proxy.is_none() {
+    if self.channel.is_none() {
       return;
     }
     let dims = bottom_right - top_left + Dir2::new(1, 1);
@@ -30,10 +31,10 @@ impl Channel {
       framebuf[idx..idx + 4].copy_from_slice(&[r, g, b, 0xff]);
     }
     self
-      .proxy
+      .channel
       .as_ref()
       .unwrap()
-      .send_event(UserEvent::ResizeAndDraw {
+      .send(UserEvent::ResizeAndDraw {
         top_left,
         bottom_right,
         framebuf,
@@ -43,16 +44,16 @@ impl Channel {
   }
 
   pub fn draw_map_pixel(&self, pos: Pos2, color: Color) {
-    if let Some(ref proxy) = self.proxy {
-      proxy
-        .send_event(UserEvent::Pixel { pos, color })
+    if let Some(ref channel) = self.channel {
+      channel
+        .send(UserEvent::Pixel { pos, color })
         .map_err(|_| ())
         .expect("message failed");
     }
   }
 
   pub fn sleep(&self, dur: Duration) {
-    if self.proxy.is_some() {
+    if self.channel.is_some() {
       std::thread::sleep(dur);
     }
   }
@@ -71,7 +72,7 @@ enum UserEvent {
 }
 
 pub fn visualize(title: &str, worker_fn: impl FnOnce(Channel) + Send + 'static) {
-  let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
+  let event_loop = EventLoop::new();
   let mut input = WinitInputHelper::new();
   let window = {
     let size = LogicalSize::new(1024.0, 768.0);
@@ -89,15 +90,21 @@ pub fn visualize(title: &str, worker_fn: impl FnOnce(Channel) + Send + 'static) 
     Pixels::new(1 as u32, 1 as u32, surface_texture).unwrap()
   };
 
+  let (sender, receiver) = channel();
   let channel = Channel {
-    proxy: Some(event_loop.create_proxy()),
+    channel: Some(sender),
   };
   std::thread::spawn(|| worker_fn(channel));
 
-  let mut view_top_left = Pos2::new(0, 0);
-  let mut view_bottom_right = Pos2::new(0, 0);
+  let mut view_state = ViewState {
+    top_left: Pos2::new(0, 0),
+    bottom_right: Pos2::new(0, 0),
+  };
   event_loop.run(move |event, _, control_flow| {
     if let Event::MainEventsCleared = event {
+      while let Ok(user) = receiver.try_recv() {
+        view_state.process_user_event(&mut pixels, user);
+      }
       if pixels.render().is_err() {
       *control_flow = ControlFlow::Exit;
       eprintln!("Render has failed.");
@@ -118,29 +125,36 @@ pub fn visualize(title: &str, worker_fn: impl FnOnce(Channel) + Send + 'static) 
         pixels.resize_surface(size.width, size.height);
       }
     }
+  });
+}
 
-    if let Event::UserEvent(user) = event {
-      match user {
-        UserEvent::ResizeAndDraw {
-          top_left,
-          bottom_right,
-          framebuf,
-        } => {
-          let dims = bottom_right - top_left + Dir2::new(1, 1);
-          pixels.resize_buffer(dims.x as u32, dims.y as u32);
-          pixels.get_frame_mut().copy_from_slice(&framebuf);
-          view_top_left = top_left;
-          view_bottom_right = bottom_right;
-        }
-        UserEvent::Pixel { pos, color: (r, g, b) } => {
-          if view_top_left.inside_rect(view_top_left, view_bottom_right) {
-            let coord = pos - view_top_left;
-            let w = view_bottom_right.x - view_top_left.x + 1;
-            let idx = ((coord.y * w + coord.x) as usize) * 4;
-            pixels.get_frame_mut()[idx..idx + 4].copy_from_slice(&[r, g, b, 0xff]);
-          }
+struct ViewState {
+  top_left: Pos2,
+  bottom_right: Pos2,
+}
+
+impl ViewState {
+  fn process_user_event(&mut self, pixels: &mut Pixels, event: UserEvent) {
+    match event {
+      UserEvent::ResizeAndDraw {
+        top_left,
+        bottom_right,
+        framebuf,
+      } => {
+        let dims = bottom_right - top_left + Dir2::new(1, 1);
+        pixels.resize_buffer(dims.x as u32, dims.y as u32);
+        pixels.get_frame_mut().copy_from_slice(&framebuf);
+        self.top_left = top_left;
+        self.bottom_right = bottom_right;
+      }
+      UserEvent::Pixel { pos, color: (r, g, b) } => {
+        if pos.inside_rect(self.top_left, self.bottom_right) {
+          let relative = pos - self.top_left;
+          let w = self.bottom_right.x - self.top_left.x + 1;
+          let idx = ((relative.y * w + relative.x) as usize) * 4;
+          pixels.get_frame_mut()[idx..idx + 4].copy_from_slice(&[r, g, b, 0xff]);
         }
       }
     }
-  });
+  }
 }
