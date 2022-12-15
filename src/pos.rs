@@ -62,6 +62,10 @@ impl Pos2 {
       }
     })
   }
+
+  pub fn manhattan(&self) -> isize {
+    self.x.abs() + self.y.abs()
+  }
 }
 
 impl Dir2 {
