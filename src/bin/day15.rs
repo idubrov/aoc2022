@@ -1,10 +1,11 @@
-use std::str::FromStr;
+use std::collections::HashSet;
+use aoc2022::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use aoc2022::visualize::Channel;
-use aoc2022::*;
+use std::str::FromStr;
 
-static RE: Lazy<Regex> = Lazy::new(|| Regex::new("Sensor at x=(-?\\d+)+, y=(-?\\d+): closest beacon is at x=(-?\\d+), y=(-?\\d+)").unwrap());
+static RE: Lazy<Regex> =
+  Lazy::new(|| Regex::new("Sensor at x=(-?\\d+)+, y=(-?\\d+): closest beacon is at x=(-?\\d+), y=(-?\\d+)").unwrap());
 
 #[derive(Debug, Clone, Copy)]
 struct Info {
@@ -16,8 +17,11 @@ impl FromStr for Info {
   type Err = ();
 
   fn from_str(line: &str) -> Result<Self, Self::Err> {
-    let mut captures = RE.captures(line).unwrap();
-    let mut it = captures.iter().skip(1).map(|s| s.unwrap().as_str().parse::<isize>().unwrap());
+    let captures = RE.captures(line).unwrap();
+    let mut it = captures
+      .iter()
+      .skip(1)
+      .map(|s| s.unwrap().as_str().parse::<isize>().unwrap());
     Ok(Info {
       sensor: Pos2::new(it.next().unwrap(), it.next().unwrap()),
       beacon: Pos2::new(it.next().unwrap(), it.next().unwrap()),
@@ -27,6 +31,7 @@ impl FromStr for Info {
 
 impl Info {
   fn distance(&self) -> isize {
+    // FIXME: manhattan!
     let Pos2 { x, y } = self.beacon - self.sensor;
     x.abs() + y.abs()
   }
@@ -45,25 +50,17 @@ impl Info {
       result.push((self.sensor.x - x_dist, self.sensor.x + x_dist));
     }
   }
-}
 
-fn find_gap(mut ranges: &[(isize, isize)]) -> Option<isize> {
-  let mut it = ranges.iter().copied();
-  let (mut from, mut to) = (-1, -1);
-  while let Some((nf, nt)) = it.next() {
-    if nt <= to {
-      continue;
-    } else if nf <= to {
-      to = nt;
-    } else {
-      if nf == to + 2 {
-        return Some(to + 1);
-      }
-      from = nf;
-      to = nt;
-    }
+  fn u_v_allowed(&self) -> [Area; 4] {
+    let uv = self.sensor.to_uv();
+    let d = self.distance();
+    [
+      Area::left_of(uv.x - d - 1),
+      Area::right_of(uv.x + d + 1),
+      Area::top_of(uv.y - d - 1),
+      Area::bottom_of(uv.y + d + 1),
+    ]
   }
-  None
 }
 
 fn count_misses(ranges: &[(isize, isize)]) -> isize {
@@ -95,41 +92,39 @@ fn collect_all(infos: &[Info], row: isize, beacon: bool, mut ranges: &mut Vec<(i
 
 fn solve(path: &str, row: isize, range: isize) -> (isize, isize) {
   let input = input_data(15, path);
-  let infos = input.lines().map(|line| line.parse::<Info>().unwrap()).collect::<Vec<_>>();
+  let infos = input
+    .lines()
+    .map(|line| line.parse::<Info>().unwrap())
+    .collect::<Vec<_>>();
 
   let mut ranges = Vec::new();
   collect_all(&infos, row, true, &mut ranges);
 
   let first = count_misses(&ranges);
 
+  let mut areas = HashSet::new();
+  areas.insert(Area::new(Pos2::new(0, -range), Pos2::new(2 * range, range)));
+  for info in &infos {
+    areas = areas
+      .iter()
+      .flat_map(|area| info.u_v_allowed().into_iter().map(|other| area.intersect(&other)))
+      .filter_map(|x| x)
+      .collect::<HashSet<Area>>();
+  }
   let mut second = None;
-  'outer: for info in &infos {
-    let rim = info.distance() + 1;
-    let dirs = [
-      Dir2::new(1, 1),
-      Dir2::new(-1, 1),
-      Dir2::new(-1, -1),
-      Dir2::new(1, -1),
-    ];
-    let start = Pos2::new(info.sensor.x, info.sensor.y - rim);
-    let mut pos = start;
-
-    for dir in dirs {
-      for _ in 0..rim {
-        if pos.x >= 0 && pos.x <= range && pos.y >= 0 && pos.y <= range {
-          if infos.iter().all(|other| (other.sensor - pos).manhattan() > other.distance()) {
-            second = Some(pos.x * 4000000 + pos.y);
-            break 'outer;
-          }
+  'outer: for area in areas {
+    for corner in area.corners() {
+      if (corner.x + corner.y) % 2 == 0 {
+        let candidate = corner.from_uv();
+        if candidate.inside_rect(Pos2::new(0, 0), Pos2::new(range, range)) {
+          second = Some(candidate.x * 4000000 + candidate.y);
+          break 'outer;
         }
-        pos += dir;
       }
     }
-    assert_eq!(start, pos);
   }
   (first, second.unwrap())
 }
-
 
 #[test]
 fn test() {
@@ -141,6 +136,6 @@ fn main() {
   let test = solve("test.txt", 10, 20);
   println!("test.txt: {} and {}", test.0, test.1);
 
-  // let input = solve("input.txt", 2000000, 4000000);
-  // println!("input.txt: {} and {}", input.0, input.1);
+  let input = solve("input.txt", 2000000, 4000000);
+  println!("input.txt: {} and {}", input.0, input.1);
 }

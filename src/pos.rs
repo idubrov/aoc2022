@@ -66,6 +66,14 @@ impl Pos2 {
   pub fn manhattan(&self) -> isize {
     self.x.abs() + self.y.abs()
   }
+
+  pub fn to_uv(self) -> Pos2 {
+    Pos2::new(self.x + self.y, self.x - self.y)
+  }
+
+  pub fn from_uv(self) -> Pos2 {
+    Pos2::new((self.x + self.y) / 2, (self.x - self.y) / 2)
+  }
 }
 
 impl Dir2 {

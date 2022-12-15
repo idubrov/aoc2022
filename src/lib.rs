@@ -1,3 +1,4 @@
+pub use area::*;
 pub use charmap::*;
 use pest::iterators::Pairs;
 use pest::RuleType;
@@ -5,6 +6,7 @@ pub use pos::*;
 use std::fmt::Debug;
 use std::str::FromStr;
 
+mod area;
 mod charmap;
 mod pos;
 pub mod visualize;
