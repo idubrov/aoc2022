@@ -1,8 +1,8 @@
-use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap};
+use aoc2022::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use aoc2022::*;
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap};
 
 static RE: Lazy<Regex> =
   Lazy::new(|| Regex::new("^Valve ([A-Z]+) has flow rate=(\\d+); tunnels? leads? to valves? (.+)$").unwrap());
@@ -14,29 +14,33 @@ struct Valve {
 }
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
-struct ScoreState {
+struct VisitState {
   pos: usize,
   open: usize,
   time: isize,
-  score: isize,
 }
 
-impl Ord for ScoreState {
+impl VisitState {
+  pub fn new(pos: usize) -> VisitState {
+    VisitState { pos, open: 0, time: 0 }
+  }
+}
+
+impl Ord for VisitState {
   fn cmp(&self, other: &Self) -> Ordering {
-    self.score.cmp(&other.score)
-      .then_with(|| other.time.cmp(&self.time))
+    other
+      .time
+      .cmp(&self.time)
       .then_with(|| self.pos.cmp(&other.pos))
       .then_with(|| self.open.cmp(&other.open))
   }
 }
 
-impl PartialOrd for ScoreState {
+impl PartialOrd for VisitState {
   fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
     Some(self.cmp(other))
   }
 }
-
-
 
 impl Valve {
   fn build_dict<'s>(line: &'s str, dict: &mut HashMap<&'s str, usize>) {
@@ -50,60 +54,60 @@ impl Valve {
     let captures = RE.captures(line).unwrap();
     let mut it = captures.iter().skip(2);
     let rate = it.next().unwrap().unwrap().as_str().parse::<isize>().unwrap();
-    let tunnels = it.next().unwrap().unwrap().as_str().split(", ").map(|t| dict[t]).collect::<Vec<_>>();
-    Valve {
-      rate, tunnels,
-    }
+    let tunnels = it
+      .next()
+      .unwrap()
+      .unwrap()
+      .as_str()
+      .split(", ")
+      .map(|t| dict[t])
+      .collect::<Vec<_>>();
+    Valve { rate, tunnels }
   }
 }
 
 fn rates(infos: &[Valve], open: usize) -> isize {
-  (0..infos.len()).filter(|idx| ((1 << idx) & open) != 0).map(|idx| infos[idx].rate).sum::<isize>()
+  (0..infos.len())
+    .filter(|idx| ((1 << idx) & open) != 0)
+    .map(|idx| infos[idx].rate)
+    .sum::<isize>()
 }
 
-fn next_states<'a>(infos: &'a [Valve], dists: &'a Vec<Vec<Option<isize>>>, state: ScoreState) -> impl Iterator<Item =ScoreState> + 'a {
-  let mut open = None;
-  let rate = rates(infos, state.open);
-  if infos[state.pos].rate != 0 && (state.open & (1 << state.pos)) == 0 {
-    open = Some(ScoreState {
-      pos: state.pos,
-      open: state.open | (1 << state.pos),
-      time: state.time + 1,
-      score: state.score + rate,
-    });
-  }
+fn find_path(
+  infos: &[Valve],
+  dists: &Vec<Vec<Option<isize>>>,
+  init: VisitState,
+  finish: isize,
+) -> HashMap<usize, isize> {
+  // We never open the initial state.
+  assert_eq!(infos[init.pos].rate, 0);
 
-  open.into_iter().chain(
-    infos.iter()
-    .enumerate()
-    .filter(move |(valve, info)| info.rate != 0 && (state.open & (1 << valve)) == 0 && dists[state.pos][*valve].is_some())
-    .map(move |(valve, _)| {
-      let delta = dists[state.pos][valve].unwrap() + 1;
-      ScoreState {
-        pos: valve,
-        open: state.open | (1 << valve),
-        time: state.time + delta,
-        score: state.score + rate * delta,
-      }
-    })
-  )
-}
-
-fn bfs(infos: &[Valve], dists: &Vec<Vec<Option<isize>>>, init: ScoreState, finish: isize) -> HashMap<usize, isize> {
   let mut scores = HashMap::new();
   let mut max = HashMap::new();
-  let mut queue = BinaryHeap::new();
-  queue.push(init);
+  let mut queue: BinaryHeap<(isize, VisitState)> = BinaryHeap::new();
+  queue.push((0, init));
   scores.insert(init, 0);
-  while let Some(state) = queue.pop() {
+  while let Some((score, state)) = queue.pop() {
     let rate = rates(infos, state.open);
-    let m: &mut isize = max.entry(state.open).or_default();
-    *m = (*m).max(state.score + (finish - state.time) * rate);
+    let max_entry: &mut isize = max.entry(state.open).or_default();
+    *max_entry = (*max_entry).max(score + (finish - state.time) * rate);
 
-    for next in next_states(infos, &dists, state) {
-      if next.time <= finish && scores.get(&next).copied().unwrap_or(isize::MIN) < next.score {
-        scores.insert(next, next.score);
-        queue.push(next);
+    for (valve, info) in infos.iter().enumerate() {
+      let dt = dists[state.pos][valve].unwrap_or(finish) + 1;
+      if info.rate == 0 || (state.open & (1 << valve)) != 0 || state.time + dt > finish {
+        continue;
+      }
+
+      let next = VisitState {
+        pos: valve,
+        open: state.open | (1 << valve),
+        time: state.time + dt,
+      };
+
+      let next_score = score + rate * dt;
+      if scores.get(&next).copied().unwrap_or(isize::MIN) < next_score {
+        scores.insert(next, next_score);
+        queue.push((next_score, next));
       }
     }
   }
@@ -119,7 +123,28 @@ fn solve(path: &str) -> (isize, isize) {
     .map(|line| Valve::from_str(line, &dict))
     .collect::<Vec<_>>();
 
+  let dists = calculate_shortest_dists(&infos);
+
+  let all = find_path(&infos, &dists, VisitState::new(dict["AA"]), 30);
+  let first = *all.iter().map(|(_, score)| score).max().unwrap();
+
+  let myself_scores = find_path(&infos, &dists, VisitState::new(dict["AA"]), 26);
+  let mut second = 0;
+  for (open, myself_score) in myself_scores {
+    let second_init = VisitState {
+      open,
+      ..VisitState::new(dict["AA"])
+    };
+    let elephant_scores = find_path(&infos, &dists, second_init, 26);
+    let elephant_score = *elephant_scores.iter().map(|(_, s)| s).max().unwrap();
+    second = second.max(elephant_score + myself_score - 26 * rates(&infos, open));
+  }
+  (first, second)
+}
+
+fn calculate_shortest_dists(infos: &Vec<Valve>) -> Vec<Vec<Option<isize>>> {
   let mut dists = vec![vec![None; infos.len()]; infos.len()];
+
   for (from, info) in infos.iter().enumerate() {
     for valve in &info.tunnels {
       dists[from][*valve] = Some(1);
@@ -139,36 +164,13 @@ fn solve(path: &str) -> (isize, isize) {
       }
     }
   }
-
-  let init = ScoreState {
-    pos: dict["AA"],
-    open: 0,
-    time: 0,
-    score: 0,
-  };
-
-  let all_first = bfs(&infos, &dists, init, 30);
-  let first = *all_first.iter().map(|(_, score)| score).max().unwrap();
-
-  let all_second = bfs(&infos, &dists, init, 26);
-  let mut second = 0;
-  for (open, score) in all_second {
-    let second_init = ScoreState {
-      pos: dict["AA"],
-      open,
-      time: 0,
-      score: score - 26 * rates(&infos, open),
-    };
-    let all_second = bfs(&infos, &dists, second_init, 26);
-    second = second.max(*all_second.iter().map(|(_, score)| score).max().unwrap());
-  }
-  (first, second)
+  dists
 }
 
 #[test]
 fn test() {
   assert_eq!((1651, 1707), solve("test.txt"));
-  assert_eq!((1638, 0), solve("input.txt"));
+  assert_eq!((1638, 2400), solve("input.txt"));
 }
 
 fn main() {
