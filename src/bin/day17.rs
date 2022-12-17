@@ -17,7 +17,7 @@ fn has_overlap(state: &[u8], pat: usize, pos: Pos2) -> bool {
   (0..PATTERNS[pat].0.len()).any(|idx| ((PATTERNS[pat].0[idx] >> pos.x) & state.get(line + idx).unwrap_or(&0)) != 0)
 }
 
-fn cache_key(state: &[u8], jet_idx: usize, pat_idx: usize) -> Option<Key> {
+fn cache_key(state: &[u8], jet_idx: usize, pat_idx: usize) -> Option<RepeatKey> {
   let mut heights = [0usize; 7];
   for idx in 0..7 {
     let mask = 1 << (7 - idx);
@@ -26,7 +26,7 @@ fn cache_key(state: &[u8], jet_idx: usize, pat_idx: usize) -> Option<Key> {
       return None;
     }
   }
-  Some(Key {
+  Some(RepeatKey {
     heights,
     jet_idx,
     pat_idx,
@@ -66,50 +66,60 @@ fn highest(state: &[u8]) -> isize {
   state
     .iter()
     .rposition(|line| *line != 0)
-    .map_or(-1, |line| (line as isize))
+    .map_or(0, |line| (line as isize) + 1)
 }
 
+/// Key for the "state" of the shape drops to search for repeated patterns.
+/// These are the only parameters that affect the future simulation, once we
+/// reach the same pattern once again, we can calculate the length of the "loop".
+/// Then we can figure out how many of these loops will we need, and simply add
+/// the loop height delta multiplied by loops count instead of simulating these loops.
 #[derive(PartialEq, Eq, Hash)]
-struct Key {
+struct RepeatKey {
+  /// Height to the highest cell in that column.
   heights: [usize; 7],
+  /// Current jet index.
   jet_idx: usize,
+  /// Current shape pattern index.
   pat_idx: usize,
 }
 
-enum Entry {
-  Base(isize, usize),
-  Diff(isize, usize),
+struct Entry {
+  /// What was the height of the tower when we encountered this state.
+  highest: isize,
+  /// What was the iteration when we encountered this state
+  iteration: usize,
 }
 
 fn solve_for(jets: &[u8], target: usize) -> isize {
-  let mut cache: HashMap<Key, Entry> = HashMap::new();
+  let mut repeats: HashMap<RepeatKey, Entry> = HashMap::new();
   let mut state: Vec<u8> = Vec::new();
   let mut jet_it = (0..jets.len()).cycle().peekable();
-  let mut idx = 0;
-  let mut offset = 0isize;
-  while idx < target {
-    let pat = idx % 5;
-    let height = highest(&state);
-    let mut pos = Pos2::new(2, height + 4);
+  let mut iteration = 0;
+  let mut height = 0isize;
+  while iteration < target {
+    let pat = iteration % 5;
+    let highest = highest(&state);
+    let mut pos = Pos2::new(2, highest + 3);
 
     // Loop detection
     if let Some(key) = cache_key(&state, *jet_it.peek().unwrap(), pat) {
-      match cache.get(&key) {
-        Some(Entry::Base(base, base_idx)) => {
-          cache.insert(key, Entry::Diff(height - base, idx - base_idx));
-        }
-        Some(Entry::Diff(diff, diff_idx)) if target - idx >= *diff_idx => {
-          let delta = (target - idx) / diff_idx;
-          offset += (delta as isize) * (*diff);
-          idx += delta * diff_idx;
-        }
-        Some(_) => {}
+      match repeats.get(&key) {
         None => {
-          cache.insert(key, Entry::Base(height, idx));
+          // Got this state for the first time -- capture the base values.
+          repeats.insert(key, Entry { highest, iteration });
+        }
+        Some(entry) => {
+          // Got this state for the second time -- can calculate loop length and height diff
+          let loop_len = iteration - entry.iteration;
+          let loop_cnt = (target - iteration) / loop_len;
+          height += (loop_cnt as isize) * (highest - entry.highest);
+          iteration += loop_cnt * loop_len;
         }
       }
     }
 
+    // Run the simulation
     loop {
       let jet_idx = jet_it.next().unwrap();
       let old_y = pos.y;
@@ -119,9 +129,9 @@ fn solve_for(jets: &[u8], target: usize) -> isize {
         break;
       }
     }
-    idx += 1;
+    iteration += 1;
   }
-  offset + highest(&state) + 1
+  height + highest(&state)
 }
 
 fn solve(path: &str) -> (isize, isize) {
