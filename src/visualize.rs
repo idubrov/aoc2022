@@ -1,4 +1,4 @@
-use crate::{CharMap, Dir2, Pos2};
+use crate::{Dir2, Pos2};
 use pixels::{Pixels, SurfaceTexture};
 use std::sync::mpsc::{channel, Sender};
 use std::time::Duration;
@@ -19,14 +19,14 @@ impl Channel {
     Channel { channel: None }
   }
 
-  pub fn draw_map(&self, map: &CharMap, top_left: Pos2, bottom_right: Pos2, color_fn: impl Fn(u8) -> Color) {
+  pub fn draw_init(&self, top_left: Pos2, bottom_right: Pos2, color_fn: impl Fn(Pos2) -> Color) {
     if self.channel.is_none() {
       return;
     }
     let dims = bottom_right - top_left + Dir2::new(1, 1);
     let mut framebuf: Vec<u8> = vec![0u8; (dims.x * dims.y * 4) as usize];
     for pos in Pos2::iter_rect(top_left, bottom_right) {
-      let (r, g, b) = color_fn(map[pos]);
+      let (r, g, b) = color_fn(pos);
       let idx = (((pos.y - top_left.y) * dims.x + (pos.x - top_left.x)) as usize) * 4;
       framebuf[idx..idx + 4].copy_from_slice(&[r, g, b, 0xff]);
     }

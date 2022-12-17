@@ -55,7 +55,7 @@ fn solve(path: &str, channel: &Channel) -> (usize, usize) {
     .for_each(|p| map[p] = b'#');
   map[Pos2::new(500, 0)] = b'.';
 
-  channel.draw_map(
+  channel.draw_init(
     &map,
     Pos2::new(500 - floor_y, 0),
     Pos2::new(500 + floor_y, floor_y),
