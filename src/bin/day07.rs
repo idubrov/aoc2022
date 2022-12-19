@@ -59,14 +59,12 @@ fn main() {
     }
   }
   let mut min_size = sizes[&"/".to_owned()];
-  let mut min_name = "/".to_owned();
   let need = 30000000 - (70000000 - sizes[&"/".to_owned()]);
   eprintln!("{:?}", sizes);
   eprintln!("{}", tot);
-  for (name, size) in &sizes {
+  for (_name, size) in &sizes {
     if *size >= need && *size < min_size {
       min_size = *size;
-      min_name = name.to_string();
     }
   }
   eprintln!("{}", min_size);

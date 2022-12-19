@@ -153,10 +153,6 @@ impl CharMap {
     self
   }
 
-  pub fn count_adjacent8(&self, pos: Pos2, ch: u8) -> usize {
-    Dir2::all_4().filter(|dir| self[pos + dir] == ch).count()
-  }
-
   pub fn is_in_bounds(&self, pos: Pos2) -> bool {
     pos.inside_rect(self.top_left, self.bottom_right)
   }

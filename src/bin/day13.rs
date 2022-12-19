@@ -1,5 +1,4 @@
 use aoc2022::*;
-use pest::Parser;
 use serde::Deserialize;
 use serde_json::from_str;
 use std::cmp::Ordering;

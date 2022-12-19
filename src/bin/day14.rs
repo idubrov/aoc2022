@@ -28,8 +28,8 @@ fn drop_sand(map: &mut CharMap, mut pos: Pos2, floor: isize, channel: &Channel) 
   false
 }
 
-fn color_fn(ch: u8) -> Color {
-  match ch {
+fn color_fn(map: &CharMap, pos: Pos2) -> Color {
+  match map[pos] {
     b'.' => EMPTY_COLOR,
     b'#' => WALL_COLOR,
     b'o' => SAND_COLOR,
@@ -55,12 +55,9 @@ fn solve(path: &str, channel: &Channel) -> (usize, usize) {
     .for_each(|p| map[p] = b'#');
   map[Pos2::new(500, 0)] = b'.';
 
-  channel.draw_init(
-    &map,
-    Pos2::new(500 - floor_y, 0),
-    Pos2::new(500 + floor_y, floor_y),
-    color_fn,
-  );
+  channel.draw_init(Pos2::new(500 - floor_y, 0), Pos2::new(500 + floor_y, floor_y), |pos| {
+    color_fn(&map, pos)
+  });
 
   let mut total = 0;
   while drop_sand(&mut map, Pos2::new(500, 0), floor_y, channel) {

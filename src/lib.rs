@@ -3,14 +3,16 @@ pub use charmap::*;
 use pest::iterators::Pairs;
 use pest::RuleType;
 pub use poly::*;
-pub use pos::*;
+pub use pos2::*;
+pub use pos3::*;
 use std::fmt::Debug;
 use std::str::FromStr;
 
 mod area;
 mod charmap;
 mod poly;
-mod pos;
+mod pos2;
+mod pos3;
 pub mod visualize;
 
 pub fn input_data(day: usize, file: &str) -> String {
