@@ -208,8 +208,8 @@ fn solve(path: &str) -> (usize, usize) {
 
 #[test]
 fn test() {
-  assert_eq!((64, 58), solve("test.txt"));
-  assert_eq!((4400, 2522), solve("input.txt"));
+  assert_eq!((33, 3472), solve("test.txt"));
+  assert_eq!((960, 2040), solve("input.txt"));
 }
 
 fn main() {
