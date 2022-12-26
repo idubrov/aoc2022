@@ -18,6 +18,9 @@ impl BoundsBehavior {
   pub fn grow(ch: u8) -> BoundsBehavior {
     BoundsBehavior::Grow { default: ch }
   }
+  pub fn abyss(ch: u8) -> BoundsBehavior {
+    BoundsBehavior::Abyss { default: ch, nothing: ch }
+  }
 }
 
 #[derive(Clone)]
@@ -126,11 +129,15 @@ impl IndexMut<Pos2> for CharMap {
 
 impl CharMap {
   pub fn from_text(text: &str) -> Self {
-    let map = text.lines().map(|line| line.as_bytes().to_vec()).collect::<Vec<_>>();
+    let mut map = text.lines().map(|line| line.as_bytes().to_vec()).collect::<Vec<_>>();
+    let width = map.iter().map(|row| row.len()).max().unwrap();
+    for row in &mut map {
+      row.resize(width, b' ');
+    }
     CharMap {
       bounds: BoundsBehavior::Panic,
       top_left: Pos2::zero(),
-      bottom_right: Pos2::new((map[0].len() as isize) - 1, (map.len() as isize) - 1),
+      bottom_right: Pos2::new((width as isize) - 1, (map.len() as isize) - 1),
       tmp: map.clone(),
       map,
     }

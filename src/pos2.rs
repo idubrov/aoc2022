@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, PartialOrd, Ord, Hash)]
 pub struct Pos2 {
@@ -114,6 +114,21 @@ impl Add<Dir2> for Pos2 {
   }
 }
 
+impl AddAssign<Pos2> for Pos2 {
+  fn add_assign(&mut self, rhs: Pos2) {
+    self.x += rhs.x;
+    self.y += rhs.y;
+  }
+}
+
+impl Add<Pos2> for Pos2 {
+  type Output = Pos2;
+  fn add(mut self, rhs: Pos2) -> Pos2 {
+    self += rhs;
+    self
+  }
+}
+
 impl SubAssign<Pos2> for Pos2 {
   fn sub_assign(&mut self, rhs: Pos2) {
     self.x -= rhs.x;
@@ -162,5 +177,13 @@ impl Iterator for Pos2RectIterator {
 impl std::fmt::Display for Pos2 {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     write!(f, "({}, {})", self.x, self.y)
+  }
+}
+
+impl Neg for Dir2 {
+  type Output = Dir2;
+
+  fn neg(self) -> Self::Output {
+    Dir2::new(-self.dx, -self.dy)
   }
 }
