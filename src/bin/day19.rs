@@ -1,11 +1,13 @@
+use aoc2022::*;
+use once_cell::sync::Lazy;
+use regex::{Match, Regex};
 use std::collections::HashMap;
 use std::ops::{Add, AddAssign, Mul};
 use std::str::FromStr;
-use once_cell::sync::Lazy;
-use regex::{Match, Regex};
-use aoc2022::*;
 
-static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r#"Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian."#).unwrap());
+static RE: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r#"Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian."#).unwrap()
+});
 
 #[derive(PartialEq, Eq, Hash, Debug, Default, Clone, Copy)]
 struct Resources {
@@ -51,8 +53,6 @@ struct State {
   robots: Resources,
   time: usize,
 }
-
-
 
 #[derive(Debug)]
 struct Blueprint {
@@ -102,7 +102,8 @@ fn blueprint(blueprint: &Blueprint, limit: usize) -> usize {
   let mut init = State::default();
   init.robots.ore += 1;
 
-  let max_ore = blueprint.ore_ore
+  let max_ore = blueprint
+    .ore_ore
     .max(blueprint.clay_ore)
     .max(blueprint.obsidian_ore)
     .max(blueprint.geode_ore);
@@ -118,7 +119,11 @@ fn blueprint(blueprint: &Blueprint, limit: usize) -> usize {
 
     // Build geode?
     if let Some(t1) = when(state.resources.ore, state.robots.ore, blueprint.geode_ore) {
-      if let Some(t2) = when(state.resources.obsidian, state.robots.obsidian, blueprint.geode_obsidian) {
+      if let Some(t2) = when(
+        state.resources.obsidian,
+        state.robots.obsidian,
+        blueprint.geode_obsidian,
+      ) {
         let ticks = t1.max(t2);
         let mut next = state;
         next.resources += next.robots * (ticks + 1);

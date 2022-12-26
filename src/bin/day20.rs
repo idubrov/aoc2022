@@ -1,6 +1,6 @@
+use aoc2022::*;
 use std::cell::RefCell;
 use std::rc::Rc;
-use aoc2022::*;
 
 struct Node {
   value: isize,
@@ -53,11 +53,13 @@ fn solve_inner(path: &str, mul: isize, iter: usize) -> isize {
   let first_list = input_data(20, path)
     .lines()
     .map(|line| line.parse::<isize>().unwrap())
-    .map(|value| Rc::new(Node {
-      value,
-      prev: RefCell::new(None),
-      next: RefCell::new(None),
-    }))
+    .map(|value| {
+      Rc::new(Node {
+        value,
+        prev: RefCell::new(None),
+        next: RefCell::new(None),
+      })
+    })
     .collect::<Vec<_>>();
 
   for idx in 0..first_list.len() {

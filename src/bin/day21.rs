@@ -1,10 +1,9 @@
-use std::collections::HashMap;
-use std::ops::{Add, Div, Mul, Sub};
+use aoc2022::*;
 use pest::iterators::Pairs;
 use pest::Parser;
 use pest_derive::Parser;
-use aoc2022::*;
-
+use std::collections::HashMap;
+use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Parser)]
 #[grammar = "bin/day21/formula.pest"]
@@ -13,11 +12,7 @@ struct FormulaParser;
 #[derive(Debug, Clone, Copy)]
 enum Formula<'a> {
   Const(isize),
-  Eval {
-    left: &'a str,
-    op: char,
-    right: &'a str,
-  }
+  Eval { left: &'a str, op: char, right: &'a str },
 }
 
 fn parse(s: &str) -> (String, Formula) {
@@ -33,11 +28,7 @@ fn parse(s: &str) -> (String, Formula) {
       let left = pairs.next().unwrap().as_str();
       let op = pairs.next_str().chars().next().unwrap();
       let right = pairs.next().unwrap().as_str();
-      Formula::Eval {
-        left,
-        op,
-        right,
-      }
+      Formula::Eval { left, op, right }
     }
   };
   (name, formula)
@@ -141,21 +132,20 @@ impl Div for Val {
   type Output = Val;
 
   fn div(self, rhs: Self) -> Self::Output {
-    assert_eq!(rhs.0.1, 0);
-    Val(self.0 * rhs.1, rhs.0.0 * self.1).normalize()
+    assert_eq!(rhs.0 .1, 0);
+    Val(self.0 * rhs.1, rhs.0 .0 * self.1).normalize()
   }
 }
 
 impl Val {
   fn normalize(mut self) -> Self {
-    let g = gcd(gcd(self.0.0, self.0.1), self.1);
-    self.0.0 /= g;
-    self.0.1 /= g;
+    let g = gcd(gcd(self.0 .0, self.0 .1), self.1);
+    self.0 .0 /= g;
+    self.0 .1 /= g;
     self.1 /= g;
     self
   }
 }
-
 
 fn eval2(map: &HashMap<String, Formula>, key: &str) -> Val {
   match map[key] {
@@ -178,10 +168,7 @@ fn eval2(map: &HashMap<String, Formula>, key: &str) -> Val {
 
 fn solve(path: &str) -> (isize, isize) {
   let input = input_data(21, path);
-  let mut input = input
-    .lines()
-    .map(parse)
-    .collect::<HashMap<String, Formula>>();
+  let mut input = input.lines().map(parse).collect::<HashMap<String, Formula>>();
 
   let first = eval(&mut input, "root");
 
@@ -190,7 +177,7 @@ fn solve(path: &str) -> (isize, isize) {
       let left = eval2(&input, left);
       let right = eval2(&input, right);
       let res = left - right;
-      -res.0.0 / res.0.1
+      -res.0 .0 / res.0 .1
     }
     _ => unreachable!(),
   };

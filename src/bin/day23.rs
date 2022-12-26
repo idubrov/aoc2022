@@ -1,5 +1,5 @@
-use std::collections::{HashMap, BTreeSet};
 use aoc2022::*;
+use std::collections::{BTreeSet, HashMap};
 
 const DIRS: [[Dir2; 3]; 4] = [
   [Dir2::new(0, -1), Dir2::new(1, -1), Dir2::new(-1, -1)],

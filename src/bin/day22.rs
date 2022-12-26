@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use aoc2022::*;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
+use std::collections::HashMap;
 
 type WrapMap = HashMap<(Pos2, Dir), (Pos2, Dir)>;
 
@@ -27,12 +27,7 @@ impl Dir {
   }
 }
 
-const DIRS: [Dir2; 4] = [
-  Dir2::new(1, 0),
-  Dir2::new(0, 1),
-  Dir2::new(-1, 0),
-  Dir2::new(0, -1),
-];
+const DIRS: [Dir2; 4] = [Dir2::new(1, 0), Dir2::new(0, 1), Dir2::new(-1, 0), Dir2::new(0, -1)];
 
 fn coord(idx: isize, size: isize, dir: Dir) -> Pos2 {
   match dir {
@@ -45,8 +40,14 @@ fn coord(idx: isize, size: isize, dir: Dir) -> Pos2 {
 
 fn gen_match(map: &mut WrapMap, size: isize, pos1: Pos2, dir1: Dir, pos2: Pos2, dir2: Dir) {
   for idx in 0..size {
-    map.insert((pos1 + coord(idx, size, dir1), dir1), (pos2 + coord(size - 1 - idx, size, dir2), dir2.reverse()));
-    map.insert((pos2 + coord(idx, size, dir2), dir2), (pos1 + coord(size - 1 - idx, size, dir1), dir1.reverse()));
+    map.insert(
+      (pos1 + coord(idx, size, dir1), dir1),
+      (pos2 + coord(size - 1 - idx, size, dir2), dir2.reverse()),
+    );
+    map.insert(
+      (pos2 + coord(idx, size, dir2), dir2),
+      (pos1 + coord(size - 1 - idx, size, dir1), dir1.reverse()),
+    );
   }
 }
 
@@ -111,7 +112,8 @@ fn cube_wraps_input() -> WrapMap {
 
 fn walk(map: &CharMap, mut pos: Pos2, mut dir: Dir, steps: usize, wraps: &WrapMap) -> (Pos2, Dir) {
   for _ in 0..steps {
-    let (next_pos, next_dir) = wraps.get(&(pos, dir))
+    let (next_pos, next_dir) = wraps
+      .get(&(pos, dir))
       .copied()
       .unwrap_or_else(|| (pos + DIRS[usize::from(dir)], dir));
     if map[next_pos] == b'#' {
@@ -122,7 +124,6 @@ fn walk(map: &CharMap, mut pos: Pos2, mut dir: Dir, steps: usize, wraps: &WrapMa
   }
   (pos, dir)
 }
-
 
 fn walk_map(map: &CharMap, mut cmds: &str, wraps: &WrapMap) -> (Pos2, Dir) {
   let x = (0..).find(|x| map[Pos2::new(*x, 0)] == b'.').unwrap();
@@ -155,7 +156,11 @@ fn solve(path: &str) -> (isize, isize) {
   let (pos, dir) = walk_map(&map, cmds, &wraps);
   let first = 1000 * (pos.y + 1) + 4 * (pos.x + 1) + (dir as isize);
 
-  let cube_wraps = if path == "test.txt" { cube_wraps_test() } else { cube_wraps_input() };
+  let cube_wraps = if path == "test.txt" {
+    cube_wraps_test()
+  } else {
+    cube_wraps_input()
+  };
   let (pos, dir) = walk_map(&map, cmds, &cube_wraps);
   let second = 1000 * (pos.y + 1) + 4 * (pos.x + 1) + (dir as isize);
   (first, second)

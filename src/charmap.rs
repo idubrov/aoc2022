@@ -19,7 +19,10 @@ impl BoundsBehavior {
     BoundsBehavior::Grow { default: ch }
   }
   pub fn abyss(ch: u8) -> BoundsBehavior {
-    BoundsBehavior::Abyss { default: ch, nothing: ch }
+    BoundsBehavior::Abyss {
+      default: ch,
+      nothing: ch,
+    }
   }
 }
 
