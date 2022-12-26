@@ -29,8 +29,8 @@ pub trait PairsExtra {
     T::Err: Debug;
 }
 
-impl<R: RuleType> PairsExtra for Pairs<'_, R> {
-  fn next_str(&mut self) -> &str {
+impl<'s, R: RuleType> PairsExtra for Pairs<'s, R> {
+  fn next_str(&mut self) -> &'s str {
     self.next().unwrap().as_str()
   }
 

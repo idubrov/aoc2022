@@ -1,0 +1,8 @@
+formula = { SOI ~ var ~ ":" ~ (val | eval) ~ EOI }
+eval = _{ var ~ op ~ var }
+op = { "+" | "-" | "*" | "/" }
+
+var = @{ ASCII_ALPHA+ }
+val = @{ ASCII_DIGIT+ }
+
+WHITESPACE = _{ " " | NEWLINE }
