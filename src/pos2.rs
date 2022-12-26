@@ -6,7 +6,7 @@ pub struct Pos2 {
   pub y: isize,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, PartialOrd, Ord, Hash, Default)]
 pub struct Dir2 {
   pub dx: isize,
   pub dy: isize,
@@ -166,7 +166,7 @@ impl Iterator for Pos2RectIterator {
     }
     let item = self.current;
     self.current.x += 1;
-    if self.current.x >= self.bottom_right.x {
+    if self.current.x > self.bottom_right.x {
       self.current.x = self.top_left.x;
       self.current.y += 1;
     }
